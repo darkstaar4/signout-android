@@ -27,8 +27,8 @@ class DefaultWebClientUrlForAuthenticationRetriever @Inject constructor(
     private val retrofitFactory: RetrofitFactory,
 ) : WebClientUrlForAuthenticationRetriever {
     override suspend fun retrieve(homeServerUrl: String): String {
-        if (homeServerUrl != AuthenticationConfig.MATRIX_ORG_URL) {
-            Timber.w("Temporary account creation flow is only supported on matrix.org")
+        if (homeServerUrl != AuthenticationConfig.SIGNOUT_SERVER_URL) {
+            Timber.w("Account creation flow is only supported on signout.io")
             throw AccountCreationNotSupported()
         }
         val wellknownApi = retrofitFactory.create(homeServerUrl)

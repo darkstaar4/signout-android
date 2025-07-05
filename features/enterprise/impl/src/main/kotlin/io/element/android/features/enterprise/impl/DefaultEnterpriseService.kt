@@ -18,12 +18,12 @@ import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
 class DefaultEnterpriseService @Inject constructor() : EnterpriseService {
-    override val isEnterpriseBuild = false
+    override val isEnterpriseBuild = true
 
-    override suspend fun isEnterpriseUser(sessionId: SessionId) = false
+    override suspend fun isEnterpriseUser(sessionId: SessionId) = true
 
-    override fun defaultHomeserverList(): List<String> = emptyList()
-    override suspend fun isAllowedToConnectToHomeserver(homeserverUrl: String) = true
+    override fun defaultHomeserverList(): List<String> = listOf("https://signout.io")
+    override suspend fun isAllowedToConnectToHomeserver(homeserverUrl: String) = homeserverUrl == "https://signout.io"
 
     override fun semanticColorsLight(): SemanticColors = compoundColorsLight
 

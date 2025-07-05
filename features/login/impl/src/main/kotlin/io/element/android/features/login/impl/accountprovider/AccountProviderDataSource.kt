@@ -21,13 +21,13 @@ class AccountProviderDataSource @Inject constructor(
     enterpriseService: EnterpriseService,
 ) {
     private val defaultAccountProvider =
-        (enterpriseService.defaultHomeserverList().firstOrNull { it != EnterpriseService.ANY_ACCOUNT_PROVIDER } ?: AuthenticationConfig.MATRIX_ORG_URL)
+        (enterpriseService.defaultHomeserverList().firstOrNull { it != EnterpriseService.ANY_ACCOUNT_PROVIDER } ?: AuthenticationConfig.SIGNOUT_SERVER_URL)
             .let { url ->
                 AccountProvider(
                     url = url,
                     subtitle = null,
-                    isPublic = url == AuthenticationConfig.MATRIX_ORG_URL,
-                    isMatrixOrg = url == AuthenticationConfig.MATRIX_ORG_URL,
+                    isPublic = url == AuthenticationConfig.SIGNOUT_SERVER_URL,
+                    isMatrixOrg = false, // SignOut server is not matrix.org
                 )
             }
 

@@ -185,13 +185,13 @@ fun SearchAccountProviderView(
 
 @Composable
 private fun HomeserverData.toAccountProvider(): AccountProvider {
-    val isMatrixOrg = homeserverUrl == AuthenticationConfig.MATRIX_ORG_URL
+    val isSignOutServer = homeserverUrl == AuthenticationConfig.SIGNOUT_SERVER_URL
     return AccountProvider(
         url = homeserverUrl,
-        subtitle = if (isMatrixOrg) stringResource(id = R.string.screen_change_account_provider_matrix_org_subtitle) else null,
+        subtitle = if (isSignOutServer) stringResource(id = R.string.screen_change_account_provider_signout_subtitle) else null,
         // There is no need to know for other servers right now
-        isPublic = isMatrixOrg,
-        isMatrixOrg = isMatrixOrg,
+        isPublic = isSignOutServer,
+        isMatrixOrg = false, // SignOut server is not matrix.org
         isValid = isWellknownValid,
     )
 }

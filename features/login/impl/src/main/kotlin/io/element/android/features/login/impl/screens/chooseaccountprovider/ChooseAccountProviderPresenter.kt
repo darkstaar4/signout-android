@@ -63,8 +63,8 @@ class ChooseAccountProviderPresenter @Inject constructor(
                     AccountProvider(
                         url = url,
                         subtitle = null,
-                        isPublic = url == AuthenticationConfig.MATRIX_ORG_URL,
-                        isMatrixOrg = url == AuthenticationConfig.MATRIX_ORG_URL,
+                        isPublic = url == AuthenticationConfig.SIGNOUT_SERVER_URL,
+                        isMatrixOrg = false, // SignOut server is not matrix.org
                         isValid = true,
                     )
                 }

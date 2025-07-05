@@ -8,6 +8,7 @@
 package io.element.android.features.login.impl.screens.onboarding
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,14 +16,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -36,12 +50,15 @@ import io.element.android.libraries.designsystem.atomic.atoms.ElementLogoAtom
 import io.element.android.libraries.designsystem.atomic.atoms.ElementLogoAtomSize
 import io.element.android.libraries.designsystem.atomic.molecules.ButtonColumnMolecule
 import io.element.android.libraries.designsystem.atomic.pages.OnBoardingPage
+import io.element.android.libraries.designsystem.modifiers.onTabOrEnterKeyFocusNext
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
+import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
+import io.element.android.libraries.designsystem.theme.components.TextField
 import io.element.android.libraries.matrix.api.auth.OidcDetails
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
@@ -129,7 +146,7 @@ private fun OnBoardingContent(state: OnBoardingState) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = stringResource(id = R.string.screen_onboarding_welcome_message, state.productionApplicationName),
+                    text = stringResource(id = R.string.screen_onboarding_welcome_message),
                     color = ElementTheme.colors.textSecondary,
                     style = ElementTheme.typography.fontBodyLgRegular.copy(fontSize = 17.sp),
                     textAlign = TextAlign.Center
@@ -153,53 +170,130 @@ private fun OnBoardingButtons(
         }
     }
 
+    // State for the login form
+    var emailFieldState by remember { mutableStateOf("") }
+    var passwordFieldState by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    val submitEnabled = emailFieldState.isNotEmpty() && passwordFieldState.isNotEmpty() && !isLoading
+
+    fun submit() {
+        // Clear focus to prevent keyboard issues
+        focusManager.clearFocus(force = true)
+        // The onSignIn callback will determine if OIDC or password login should be used
+        // based on the homeserver capabilities
+        onSignIn(false)
+    }
+
     ButtonColumnMolecule {
-        val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount) {
-            R.string.screen_onboarding_sign_in_manually
-        } else {
-            CommonStrings.action_continue
-        }
-        if (state.canLoginWithQrCode) {
-            Button(
-                text = stringResource(id = R.string.screen_onboarding_sign_in_with_qr_code),
-                leadingIcon = IconSource.Vector(CompoundIcons.QrCode()),
-                onClick = onSignInWithQrCode,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        val defaultAccountProvider = state.defaultAccountProvider
-        if (defaultAccountProvider == null) {
-            Button(
-                text = stringResource(id = signInButtonStringRes),
-                onClick = {
-                    onSignIn(state.mustChooseAccountProvider)
+        // Email field
+        TextField(
+            value = emailFieldState,
+            enabled = !isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onTabOrEnterKeyFocusNext(focusManager)
+                .semantics {
+                    contentType = ContentType.Username
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestTags.onBoardingSignIn)
-            )
-        } else {
-            Button(
-                text = stringResource(id = R.string.screen_onboarding_sign_in_to, defaultAccountProvider),
-                showProgress = isLoading,
-                onClick = {
-                    state.eventSink(OnBoardingEvents.OnSignIn(defaultAccountProvider))
+            placeholder = "Email",
+            label = "Email",
+            onValueChange = { emailFieldState = it },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(onNext = {
+                focusManager.moveFocus(FocusDirection.Down)
+            }),
+            singleLine = true,
+            trailingIcon = if (emailFieldState.isNotEmpty()) {
+                {
+                    Box(Modifier.clickable {
+                        emailFieldState = ""
+                    }) {
+                        Icon(
+                            imageVector = CompoundIcons.Close(),
+                            contentDescription = "Clear",
+                            tint = ElementTheme.colors.iconSecondary
+                        )
+                    }
+                }
+            } else {
+                null
+            },
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Password field
+        TextField(
+            value = passwordFieldState,
+            enabled = !isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onTabOrEnterKeyFocusNext(focusManager)
+                .semantics {
+                    contentType = ContentType.Password
                 },
-                enabled = state.submitEnabled || isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-        }
-        if (state.canCreateAccount) {
-            TextButton(
-                text = stringResource(id = R.string.screen_onboarding_sign_up),
-                onClick = onCreateAccount,
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-        }
+            onValueChange = { passwordFieldState = it },
+            placeholder = "Password",
+            label = "Password",
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                val image = if (passwordVisible) CompoundIcons.VisibilityOn() else CompoundIcons.VisibilityOff()
+                val description = if (passwordVisible) "Hide password" else "Show password"
+                Box(Modifier.clickable { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = image,
+                        contentDescription = description,
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { if (submitEnabled) submit() }
+            ),
+            singleLine = true,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Login button
+        Button(
+            text = "Sign In",
+            showProgress = isLoading,
+            onClick = ::submit,
+            enabled = submitEnabled,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Forgot password link
+        TextButton(
+            text = "Forgot Password?",
+            onClick = { /* TODO: Implement forgot password */ },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Create account button
+        TextButton(
+            text = "Create Account",
+            onClick = onCreateAccount,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Version text
         if (state.canReportBug) {
-            // Add a report problem text button. Use a Text since we need a special theme here.
             Text(
                 modifier = Modifier
                     .clickable(onClick = onReportProblem)
@@ -215,7 +309,7 @@ private fun OnBoardingButtons(
                         state.eventSink(OnBoardingEvents.OnVersionClick)
                     }
                     .padding(16.dp),
-                text = stringResource(id = R.string.screen_onboarding_app_version, state.version),
+                text = stringResource(id = R.string.screen_onboarding_app_version),
                 style = ElementTheme.typography.fontBodySmRegular,
                 color = ElementTheme.colors.textSecondary,
             )
