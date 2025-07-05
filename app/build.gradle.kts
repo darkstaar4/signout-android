@@ -108,7 +108,7 @@ android {
     buildTypes {
         val oidcRedirectSchemeBase = BuildTimeConfig.METADATA_HOST_REVERSED ?: "io.element.android"
         getByName("debug") {
-            resValue("string", "app_name", "$baseAppName dbg")
+            resValue("string", "app_name", "SignOut dbg")
             resValue(
                 "string",
                 "login_redirect_scheme",
@@ -119,7 +119,7 @@ android {
         }
 
         getByName("release") {
-            resValue("string", "app_name", baseAppName)
+            resValue("string", "app_name", "SignOut")
             resValue(
                 "string",
                 "login_redirect_scheme",

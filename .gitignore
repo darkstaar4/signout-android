@@ -1,0 +1,50 @@
+# Android build files
+build/
+*/build/
+**/build/
+.gradle/
+local.properties
+
+# APK files
+*.apk
+*.aab
+
+# macOS files
+.DS_Store
+**/.DS_Store
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Gradle files
+.gradle/
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.jar
+
+# Generated files
+bin/
+gen/
+out/
+
+# Log files
+*.log
+
+# Cache files
+.cxx/
+.externalNativeBuild/
+
+# Signing files
+*.jks
+*.keystore
+
+# Proguard
+proguard/
+
+# Lint
+lint-results.xml
+
+# OS generated files
+Thumbs.db
