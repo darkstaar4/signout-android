@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="110dp"
+    android:height="110dp"
+    android:viewportWidth="110"
+    android:viewportHeight="110">
+    
+    <!-- Circular background with gradient -->
+    <path
+        android:pathData="M55,55m-55,0a55,55 0,1 1,110 0a55,55 0,1 1,-110 0"
+        android:fillType="evenOdd">
+        <aapt:attr name="android:fillColor" xmlns:aapt="http://schemas.android.com/aapt">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="110"
+                android:endY="110"
+                android:startColor="#FFB6D7"
+                android:centerColor="#C8A8E9"
+                android:endColor="#7DD3FC"/>
+        </aapt:attr>
+    </path>
+    
+    <!-- Shield shape -->
+    <path
+        android:pathData="M55,20 C55,20 35,25 35,38 L35,55 C35,75 55,90 55,90 C55,90 75,75 75,55 L75,38 C75,25 55,20 55,20 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E5E7EB"
+        android:strokeWidth="1"/>
+    
+    <!-- Medical cross -->
+    <path
+        android:pathData="M55,40 L55,70 M40,55 L70,55"
+        android:strokeColor="#10B981"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"/>
+    
+</vector>
