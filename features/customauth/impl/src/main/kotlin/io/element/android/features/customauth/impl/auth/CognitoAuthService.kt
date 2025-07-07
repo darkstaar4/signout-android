@@ -289,7 +289,8 @@ class CognitoAuthService
             return suspendCancellableCoroutine { continuation ->
                 // Generate Matrix credentials
                 val matrixPassword = matrixIntegrationService.generateMatrixPassword()
-                val matrixUsername = matrixIntegrationService.formatMatrixUsername(userData.username)
+                // Use the same username for both preferred_username and custom:matrix_username
+                val matrixUsername = userData.username // This should be the same as preferred_username
 
                 val userAttributes =
                     CognitoUserAttributes().apply {
@@ -309,7 +310,7 @@ class CognitoAuthService
                         userData.officeState?.let { if (it.isNotEmpty()) addAttribute("custom:office_state", it) }
                         userData.officeZip?.let { if (it.isNotEmpty()) addAttribute("custom:office_zip", it) }
 
-                        // Matrix credentials
+                        // Matrix credentials - use the same username as preferred_username
                         addAttribute("custom:matrix_username", matrixUsername)
                         addAttribute("custom:matrix_password", matrixPassword)
                     }

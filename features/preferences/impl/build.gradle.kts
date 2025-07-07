@@ -85,6 +85,11 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.datastore.preferences)
+    
+    // AWS Cognito dependencies for user attribute access
+    implementation("com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.75.0")
+    implementation("com.amazonaws:aws-android-sdk-core:2.75.0")
+    
     api(projects.features.preferences.api)
 
     implementation(platform(libs.network.okhttp.bom))
