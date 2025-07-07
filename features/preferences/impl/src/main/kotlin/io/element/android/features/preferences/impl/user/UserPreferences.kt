@@ -23,7 +23,8 @@ fun UserPreferences(
 ) {
     MatrixUserHeader(
         modifier = modifier,
-        matrixUser = user
+        matrixUser = user,
+        isCurrentUser = false // Show username in settings for sharing purposes
     )
 }
 

@@ -170,127 +170,56 @@ private fun OnBoardingButtons(
         }
     }
 
-    // State for the login form
-    var emailFieldState by remember { mutableStateOf("") }
-    var passwordFieldState by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
-
-    val submitEnabled = emailFieldState.isNotEmpty() && passwordFieldState.isNotEmpty() && !isLoading
-
-    fun submit() {
-        // Clear focus to prevent keyboard issues
-        focusManager.clearFocus(force = true)
-        // The onSignIn callback will determine if OIDC or password login should be used
-        // based on the homeserver capabilities
-        onSignIn(false)
-    }
-
     ButtonColumnMolecule {
-        // Email field
-        TextField(
-            value = emailFieldState,
-            enabled = !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onTabOrEnterKeyFocusNext(focusManager)
-                .semantics {
-                    contentType = ContentType.Username
-                },
-            placeholder = "Email",
-            label = "Email",
-            onValueChange = { emailFieldState = it },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(onNext = {
-                focusManager.moveFocus(FocusDirection.Down)
-            }),
-            singleLine = true,
-            trailingIcon = if (emailFieldState.isNotEmpty()) {
-                {
-                    Box(Modifier.clickable {
-                        emailFieldState = ""
-                    }) {
-                        Icon(
-                            imageVector = CompoundIcons.Close(),
-                            contentDescription = "Clear",
-                            tint = ElementTheme.colors.iconSecondary
-                        )
-                    }
-                }
-            } else {
-                null
-            },
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password field
-        TextField(
-            value = passwordFieldState,
-            enabled = !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onTabOrEnterKeyFocusNext(focusManager)
-                .semantics {
-                    contentType = ContentType.Password
-                },
-            onValueChange = { passwordFieldState = it },
-            placeholder = "Password",
-            label = "Password",
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (passwordVisible) CompoundIcons.VisibilityOn() else CompoundIcons.VisibilityOff()
-                val description = if (passwordVisible) "Hide password" else "Show password"
-                Box(Modifier.clickable { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = image,
-                        contentDescription = description,
-                    )
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { if (submitEnabled) submit() }
-            ),
-            singleLine = true,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Login button
-        Button(
-            text = "Sign In",
-            showProgress = isLoading,
-            onClick = ::submit,
-            enabled = submitEnabled,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Forgot password link
-        TextButton(
-            text = "Forgot Password?",
-            onClick = { /* TODO: Implement forgot password */ },
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // Create account button
-        TextButton(
-            text = "Create Account",
-            onClick = onCreateAccount,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
+        when {
+            state.canLoginWithQrCode -> {
+                Button(
+                    text = stringResource(id = R.string.screen_onboarding_sign_in_with_qr_code),
+                    showProgress = isLoading,
+                    onClick = onSignInWithQrCode,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                TextButton(
+                    text = stringResource(id = R.string.screen_onboarding_sign_in_manually),
+                    onClick = { onSignIn(state.mustChooseAccountProvider) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            state.canCreateAccount -> {
+                Button(
+                    text = stringResource(id = R.string.screen_onboarding_sign_up),
+                    showProgress = isLoading,
+                    onClick = onCreateAccount,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                TextButton(
+                    text = stringResource(id = R.string.screen_onboarding_sign_in_manually),
+                    onClick = { onSignIn(state.mustChooseAccountProvider) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            state.defaultAccountProvider != null -> {
+                Button(
+                    text = stringResource(id = R.string.screen_onboarding_sign_in_to, state.defaultAccountProvider),
+                    showProgress = isLoading,
+                    onClick = {
+                        state.eventSink(OnBoardingEvents.OnSignIn(state.defaultAccountProvider))
+                    },
+                    enabled = state.submitEnabled,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            else -> {
+                Button(
+                    text = stringResource(id = CommonStrings.action_continue),
+                    showProgress = isLoading,
+                    onClick = { onSignIn(state.mustChooseAccountProvider) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
         
         // Version text
         if (state.canReportBug) {

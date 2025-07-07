@@ -106,6 +106,7 @@ private fun ReplyToReadyContent(
                 senderId = senderId,
                 senderProfile = senderProfile,
                 senderNameMode = SenderNameMode.Reply,
+                currentUserId = null, // TODO: Pass current user ID when available
                 modifier = Modifier.semantics {
                     contentDescription = a11InReplyToText
                     isTraversalGroup = true

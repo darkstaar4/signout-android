@@ -62,7 +62,7 @@ class LoginPasswordViewTest {
                 eventSink = eventsRecorder,
             ),
         )
-        val userNameHint = rule.activity.getString(CommonStrings.common_username)
+        val userNameHint = rule.activity.getString(CommonStrings.common_email_address)
         rule.onNodeWithText(userNameHint).performTextInput(A_USER_NAME)
         eventsRecorder.assertSingle(
             LoginPasswordEvents.SetLogin(A_USER_NAME)
@@ -77,7 +77,7 @@ class LoginPasswordViewTest {
                 eventSink = eventsRecorder,
             ),
         )
-        val userNameHint = rule.activity.getString(CommonStrings.common_username)
+        val userNameHint = rule.activity.getString(CommonStrings.common_email_address)
         rule.onNodeWithText(userNameHint).performTextInput("a\nb")
         eventsRecorder.assertSingle(
             LoginPasswordEvents.SetLogin("ab")

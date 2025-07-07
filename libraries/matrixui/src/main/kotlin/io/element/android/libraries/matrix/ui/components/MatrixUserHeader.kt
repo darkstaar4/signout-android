@@ -30,11 +30,14 @@ import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.model.getAvatarData
 import io.element.android.libraries.matrix.ui.model.getBestName
+import io.element.android.libraries.matrix.ui.model.getBestNameForCurrentUser
+import io.element.android.libraries.matrix.ui.model.getUserIdForDisplay
 
 @Composable
 fun MatrixUserHeader(
     matrixUser: MatrixUser?,
     modifier: Modifier = Modifier,
+    isCurrentUser: Boolean = false,
     // TODO handle click on this item, to let the user be able to update their profile.
     // onClick: () -> Unit,
 ) {
@@ -43,6 +46,7 @@ fun MatrixUserHeader(
     } else {
         MatrixUserHeaderContent(
             matrixUser = matrixUser,
+            isCurrentUser = isCurrentUser,
             modifier = modifier,
             // onClick = onClick
         )
@@ -52,6 +56,7 @@ fun MatrixUserHeader(
 @Composable
 private fun MatrixUserHeaderContent(
     matrixUser: MatrixUser,
+    isCurrentUser: Boolean = false,
     modifier: Modifier = Modifier,
     // onClick: () -> Unit,
 ) {
@@ -75,16 +80,16 @@ private fun MatrixUserHeaderContent(
             // Name
             Text(
                 modifier = Modifier.clipToBounds(),
-                text = matrixUser.getBestName(),
+                text = matrixUser.getBestNameForCurrentUser(isCurrentUser),
                 maxLines = 1,
                 style = ElementTheme.typography.fontHeadingSmMedium,
                 overflow = TextOverflow.Ellipsis,
                 color = ElementTheme.colors.textPrimary,
             )
             // Id
-            if (matrixUser.displayName.isNullOrEmpty().not()) {
+            matrixUser.getUserIdForDisplay(isCurrentUser)?.let { userIdToDisplay ->
                 Text(
-                    text = matrixUser.userId.value,
+                    text = userIdToDisplay,
                     style = ElementTheme.typography.fontBodyMdRegular,
                     color = ElementTheme.colors.textSecondary,
                     maxLines = 1,

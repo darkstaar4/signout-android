@@ -114,11 +114,13 @@ class DefaultFtueService @Inject constructor(
     }
 
     private suspend fun canSkipVerification(): Boolean {
-        return sessionPreferencesStore.isSessionVerificationSkipped().first()
+        // Always skip session verification since users are already authenticated via Cognito
+        return true
     }
 
     private suspend fun needsAnalyticsOptIn(): Boolean {
-        return analyticsService.didAskUserConsentFlow.first().not()
+        // Skip analytics opt-in screen for Cognito-authenticated users
+        return false
     }
 
     private suspend fun shouldAskNotificationPermissions(): Boolean {

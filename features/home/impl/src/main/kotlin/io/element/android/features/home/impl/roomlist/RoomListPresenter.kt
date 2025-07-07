@@ -185,18 +185,8 @@ class RoomListPresenter @Inject constructor(
         securityBannerDismissed: Boolean,
         recoveryState: RecoveryState,
     ): SecurityBannerState {
-        if (securityBannerDismissed) {
-            return SecurityBannerState.None
-        }
-
-        when (recoveryState) {
-            RecoveryState.DISABLED -> return SecurityBannerState.SetUpRecovery
-            RecoveryState.INCOMPLETE -> return SecurityBannerState.RecoveryKeyConfirmation
-            RecoveryState.UNKNOWN,
-            RecoveryState.WAITING_FOR_SYNC,
-            RecoveryState.ENABLED -> Unit
-        }
-
+        // Always return None since users are already authenticated via Cognito
+        // and recovery setup is not required for this use case
         return SecurityBannerState.None
     }
 

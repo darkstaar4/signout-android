@@ -36,6 +36,10 @@ dependencies {
     implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
     implementation(libs.jsoup)
+    
+    // AWS Cognito for getting user's real name
+    implementation("com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.77.0")
+    implementation("com.amazonaws:aws-android-sdk-core:2.77.0")
 
     testImplementation(libs.coroutines.test)
     testImplementation(libs.test.junit)

@@ -25,6 +25,26 @@ fun MatrixUser.getBestName(): String {
     return displayName?.takeIf { it.isNotEmpty() } ?: userId.value
 }
 
+fun MatrixUser.getBestNameForCurrentUser(isCurrentUser: Boolean): String {
+    return if (isCurrentUser && displayName?.isNotEmpty() == true) {
+        // For the current user, show only the display name (e.g., "John Smith") without the Matrix ID
+        displayName!!
+    } else {
+        // For other users, use the standard logic
+        getBestName()
+    }
+}
+
+fun MatrixUser.getUserIdForDisplay(isCurrentUser: Boolean): String? {
+    return if (isCurrentUser) {
+        // For the current user, don't show the Matrix ID to hide signout.io domain
+        null
+    } else {
+        // For other users, show the Matrix ID if they have a display name
+        if (displayName?.isNotEmpty() == true) userId.value else null
+    }
+}
+
 @Composable
 fun MatrixUser.getFullName(): String {
     return displayName.let { name ->

@@ -183,7 +183,7 @@ private fun LoginForm(
 
     Column {
         TextField(
-            label = stringResource(R.string.screen_login_form_header),
+            label = stringResource(CommonStrings.common_email_address),
             value = loginFieldState,
             enabled = !isLoading,
             modifier = Modifier
@@ -191,9 +191,9 @@ private fun LoginForm(
                 .onTabOrEnterKeyFocusNext(focusManager)
                 .testTag(TestTags.loginEmailUsername)
                 .semantics {
-                    contentType = ContentType.Username
+                    contentType = ContentType.EmailAddress
                 },
-            placeholder = stringResource(CommonStrings.common_username),
+            placeholder = stringResource(CommonStrings.common_email_address),
             onValueChange = {
                 val sanitized = it.sanitize()
                 loginFieldState = sanitized

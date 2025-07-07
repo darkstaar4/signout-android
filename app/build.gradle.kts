@@ -263,6 +263,7 @@ dependencies {
         implementation(projects.appicon.element)
     }
     allFeaturesImpl(project)
+    implementation(projects.features.customauth.api)
     implementation(projects.features.migration.api)
     implementation(projects.appnav)
     implementation(projects.appconfig)
@@ -324,6 +325,8 @@ licensee {
     allowUrl("https://jsoup.org/license")
     allowUrl("https://asm.ow2.io/license.html")
     allowUrl("https://www.gnu.org/licenses/agpl-3.0.txt")
+    allowUrl("https://aws.amazon.com/asl/")
+    allowUrl("http://aws.amazon.com/apache2.0")
     ignoreDependencies("com.github.matrix-org", "matrix-analytics-events")
     // Ignore dependency that are not third-party licenses to us.
     ignoreDependencies(groupId = "io.element.android")

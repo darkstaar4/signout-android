@@ -192,6 +192,8 @@ class LoggedInFlowNode @AssistedInject constructor(
                 matrixClient.sessionVerificationService().setListener(verificationListener)
                 mediaPreviewConfigMigration()
 
+
+
                 ftueService.state
                     .onEach { ftueState ->
                         when (ftueState) {

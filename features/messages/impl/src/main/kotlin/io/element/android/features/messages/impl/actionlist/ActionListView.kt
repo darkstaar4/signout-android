@@ -320,6 +320,7 @@ private fun MessageSummary(
                     senderId = event.senderId,
                     senderProfile = event.senderProfile,
                     senderNameMode = SenderNameMode.ActionList,
+                    currentUserId = if (event.isMine) event.senderId else null,
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(

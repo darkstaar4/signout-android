@@ -33,6 +33,7 @@ dependencies {
     implementation(projects.libraries.testtags)
     implementation(projects.libraries.uiStrings)
     implementation(projects.libraries.dateformatter.api)
+    implementation(projects.features.customauth.impl)
     api(projects.features.logout.api)
 
     testImplementation(libs.test.junit)

@@ -320,6 +320,7 @@ private fun TimelineItemEventRowContent(
                 event.senderProfile,
                 event.senderAvatar,
                 onUserDataClick,
+                event.isMine,
                 Modifier
                     .constrainAs(sender) {
                         top.linkTo(parent.top)
@@ -425,6 +426,7 @@ private fun MessageSenderInformation(
     senderProfile: ProfileTimelineDetails,
     senderAvatar: AvatarData,
     onClick: () -> Unit,
+    isCurrentUser: Boolean,
     modifier: Modifier = Modifier
 ) {
     val avatarColors = AvatarColorsProvider.provide(senderAvatar.id)
@@ -453,6 +455,7 @@ private fun MessageSenderInformation(
             senderId = senderId,
             senderProfile = senderProfile,
             senderNameMode = SenderNameMode.Timeline(avatarColors.foreground),
+            currentUserId = if (isCurrentUser) senderId else null,
         )
     }
 }

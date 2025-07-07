@@ -1,0 +1,42 @@
+{
+  "name": "dropdown-components-package",
+  "version": "1.0.0",
+  "description": "Comprehensive dropdown components for React Native with healthcare and professional data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-native": "^0.72.0"
+  },
+  "peerDependencies": {
+    "lucide-react-native": "^0.263.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.72.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "react-native",
+    "dropdown",
+    "components",
+    "healthcare",
+    "professional",
+    "phone-input",
+    "country-codes",
+    "medical-specialties",
+    "ui-components"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "your-repo-url"
+  },
+  "bugs": {
+    "url": "your-repo-url/issues"
+  },
+  "homepage": "your-repo-url#readme"
+} 

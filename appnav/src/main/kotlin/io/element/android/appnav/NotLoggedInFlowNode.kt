@@ -23,7 +23,7 @@ import com.bumble.appyx.navmodel.backstack.BackStack
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.element.android.anvilannotations.ContributesNode
-import io.element.android.features.login.api.LoginEntryPoint
+import io.element.android.features.customauth.api.CustomAuthEntryPoint
 import io.element.android.features.login.api.LoginParams
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
@@ -39,7 +39,7 @@ import kotlinx.parcelize.Parcelize
 class NotLoggedInFlowNode @AssistedInject constructor(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    private val loginEntryPoint: LoginEntryPoint,
+    private val customAuthEntryPoint: CustomAuthEntryPoint,
     private val notLoggedInImageLoaderFactory: NotLoggedInImageLoaderFactory,
 ) : BaseFlowNode<NotLoggedInFlowNode.NavTarget>(
     backstack = BackStack(
@@ -76,17 +76,21 @@ class NotLoggedInFlowNode @AssistedInject constructor(
     override fun resolve(navTarget: NavTarget, buildContext: BuildContext): Node {
         return when (navTarget) {
             NavTarget.Root -> {
-                val callback = object : LoginEntryPoint.Callback {
+                val callback = object : CustomAuthEntryPoint.Callback {
+                    override fun onAuthenticationSuccess() {
+                        // Authentication successful - this will be handled by the root navigation
+                        // The app will automatically navigate to the logged-in state
+                    }
+
                     override fun onReportProblem() {
                         plugins<Callback>().forEach { it.onOpenBugReport() }
                     }
                 }
-                loginEntryPoint
+                customAuthEntryPoint
                     .nodeBuilder(this, buildContext)
                     .params(
-                        LoginEntryPoint.Params(
-                            accountProvider = inputs.loginParams?.accountProvider,
-                            loginHint = inputs.loginParams?.loginHint,
+                        CustomAuthEntryPoint.Params(
+                            initialScreen = CustomAuthEntryPoint.InitialScreen.Login
                         )
                     )
                     .callback(callback)
