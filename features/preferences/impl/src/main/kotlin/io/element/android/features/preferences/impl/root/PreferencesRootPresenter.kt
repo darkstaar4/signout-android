@@ -85,7 +85,7 @@ class PreferencesRootPresenter @Inject constructor(
         }
         val canReportBug = remember { rageshakeFeatureAvailability.isAvailable() }
         LaunchedEffect(Unit) {
-            canDeactivateAccount = matrixClient.canDeactivateAccount()
+            canDeactivateAccount = false // Always disable deactivate account option
         }
 
         val showBlockedUsersItem by produceState(initialValue = false) {
