@@ -195,12 +195,22 @@ class CognitoAuthService
                                                         )
                                                         
                                                         if (matrixResult.isSuccess) {
-                                                            Timber.d("Matrix login/registration successful for user: $loginIdentifier")
+                                                            val result = matrixResult.getOrThrow()
+                                                            Timber.d("Matrix account created/logged in successfully: ${result.sessionId}")
+                                                            
+                                                            // Store Matrix credentials in Cognito
+                                                            storeMatrixCredentials(cognitoUser, matrixUsername, matrixPassword)
+                                                            
+                                                            continuation.resume(AuthResult(isSuccess = true, user = cognitoUser))
                                                         } else {
-                                                            Timber.w("Matrix login/registration failed: ${matrixResult.exceptionOrNull()}")
+                                                            Timber.w("Matrix login/registration failed: ${matrixResult.exceptionOrNull()?.message}")
+                                                            // Continue with Cognito-only authentication instead of failing
+                                                            continuation.resume(AuthResult(isSuccess = true, user = cognitoUser))
                                                         }
-                                                    } catch (exception: Exception) {
-                                                        Timber.e(exception, "Exception during Matrix login/registration")
+                                                    } catch (e: Exception) {
+                                                        Timber.w("Matrix integration failed: ${e.message}")
+                                                        // Continue with Cognito-only authentication instead of failing
+                                                        continuation.resume(AuthResult(isSuccess = true, user = cognitoUser))
                                                     }
                                                 }
                                             }
@@ -214,8 +224,6 @@ class CognitoAuthService
                                     }
                                 }
                             }
-                            
-                            continuation.resume(AuthResult(isSuccess = true, user = cognitoUser))
                         }
 
                         override fun getAuthenticationDetails(
@@ -714,14 +722,16 @@ class CognitoAuthService
         }
 
         suspend fun isUserPreVerified(username: String): Boolean {
+            // Since custom:pre_verified attribute doesn't exist in the schema,
+            // we'll check if the user's email is already verified instead
             return suspendCancellableCoroutine { continuation ->
                 val cognitoUser = userPool.getUser(username)
                 
                 cognitoUser.getDetailsInBackground(object : GetDetailsHandler {
                     override fun onSuccess(userDetails: CognitoUserDetails?) {
                         val attributes = userDetails?.attributes
-                        val isPreVerified = attributes?.attributes?.get("custom:pre_verified") == "true"
-                        continuation.resume(isPreVerified)
+                        val emailVerified = attributes?.attributes?.get("email_verified") == "true"
+                        continuation.resume(emailVerified)
                     }
                     
                     override fun onFailure(exception: Exception?) {
@@ -755,9 +765,6 @@ class CognitoAuthService
                             userData.officeCity?.let { if (it.isNotEmpty()) addAttribute("custom:office_city", it) }
                             userData.officeState?.let { if (it.isNotEmpty()) addAttribute("custom:office_state", it) }
                             userData.officeZip?.let { if (it.isNotEmpty()) addAttribute("custom:office_zip", it) }
-                            
-                            // Add pre-verified flag to indicate user verified email during registration
-                            addAttribute("custom:pre_verified", "true")
                             
                             // Don't add Matrix credentials yet - they'll be added after verification
                         }
@@ -906,6 +913,27 @@ class CognitoAuthService
                     }
                 )
             }
+        }
+    }
+
+    private fun storeMatrixCredentials(user: CognitoUser, matrixUsername: String, matrixPassword: String) {
+        try {
+            val updateAttributes = CognitoUserAttributes().apply {
+                addAttribute("custom:matrix_username", matrixUsername)
+                addAttribute("custom:matrix_password", matrixPassword)
+            }
+            
+            user.updateAttributesInBackground(updateAttributes, object : UpdateAttributesHandler {
+                override fun onSuccess(attributesVerificationList: MutableList<CognitoUserCodeDeliveryDetails>?) {
+                    Timber.d("Successfully stored Matrix credentials for user")
+                }
+                
+                override fun onFailure(exception: Exception?) {
+                    Timber.e(exception, "Failed to store Matrix credentials")
+                }
+            })
+        } catch (e: Exception) {
+            Timber.e(e, "Exception storing Matrix credentials")
         }
     }
 }

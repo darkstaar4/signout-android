@@ -35,6 +35,7 @@ class VerificationPresenter @AssistedInject constructor(
         // Use parameters passed from navigation
         val username = params.username
         val email = params.email
+        val password = params.password
         var verificationCode by remember { mutableStateOf("") }
         var isLoading by remember { mutableStateOf(false) }
         var isResending by remember { mutableStateOf(false) }
@@ -96,7 +97,23 @@ class VerificationPresenter @AssistedInject constructor(
                                             
                                             if (updateResult.isSuccess) {
                                                 Timber.d("Matrix credentials stored in Cognito successfully")
-                                                isMatrixAccountCreated = true
+                                                
+                                                // IMPORTANT: Login the user to establish Cognito session
+                                                // This ensures the profile screen shows the correct user's data
+                                                try {
+                                                    Timber.d("Logging in new user to establish Cognito session: $email")
+                                                    val loginResult = cognitoAuthService.login(email, password, matrixIntegrationService)
+                                                    if (loginResult.isSuccess) {
+                                                        Timber.d("Auto-login successful after verification")
+                                                        isMatrixAccountCreated = true
+                                                    } else {
+                                                        Timber.w("Auto-login failed after verification: ${loginResult.error}")
+                                                        isMatrixAccountCreated = true
+                                                    }
+                                                } catch (loginException: Exception) {
+                                                    Timber.w(loginException, "Failed to auto-login after verification")
+                                                    isMatrixAccountCreated = true
+                                                }
                                             } else {
                                                 Timber.w("Failed to store Matrix credentials in Cognito: ${updateResult.error}")
                                             }
@@ -164,7 +181,8 @@ class VerificationPresenter @AssistedInject constructor(
     
     data class Params(
         val username: String,
-        val email: String
+        val email: String,
+        val password: String
     )
     
     @AssistedFactory

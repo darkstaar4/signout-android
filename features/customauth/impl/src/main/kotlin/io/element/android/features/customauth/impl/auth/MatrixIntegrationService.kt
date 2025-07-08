@@ -21,6 +21,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import java.security.SecureRandom
 import javax.inject.Inject
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 interface MatrixIntegrationService {
     suspend fun createMatrixAccount(
@@ -68,13 +70,36 @@ data class MatrixRegisterResponse(
 data class MatrixRegisterFlowResponse(
     val session: String,
     val flows: List<MatrixFlow>,
-    val params: Map<String, Any> = emptyMap(),
+    val params: Map<String, String> = emptyMap(),
     val completed: List<String> = emptyList(),
 )
 
 @Serializable
 data class MatrixFlow(
     val stages: List<String>,
+)
+
+@Serializable
+data class MatrixNonceResponse(
+    val nonce: String
+)
+
+@Serializable
+data class MatrixSharedSecretRegisterRequest(
+    val nonce: String,
+    val username: String,
+    val displayname: String,
+    val password: String,
+    val admin: Boolean,
+    val mac: String
+)
+
+@Serializable
+data class MatrixSharedSecretRegisterResponse(
+    val user_id: String,
+    val access_token: String,
+    val device_id: String,
+    val home_server: String? = null
 )
 
 @ContributesBinding(AppScope::class)
@@ -89,7 +114,10 @@ class DefaultMatrixIntegrationService
             private const val MATRIX_HOMESERVER_URL = "https://signout.io"
             private const val PASSWORD_LENGTH = 16
             private const val PASSWORD_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*"
-            private const val REGISTRATION_TOKEN = "healthcare_signup_2024"
+            // Shared secret for Matrix registration
+            private const val REGISTRATION_SHARED_SECRET = "y0H*aX1tmBbCY1lg#kzl2xJ^&2OX~S7q3P36r=.AGqKH&8VHne"
+            // Admin access token for password reset
+            private const val ADMIN_ACCESS_TOKEN = "syt_YWRtaW4_HxOSZvzRUrQsPaiqnAZT_331KTn"
         }
 
         private val httpClient = OkHttpClient()
@@ -116,7 +144,7 @@ class DefaultMatrixIntegrationService
                 
                 Timber.d("Formatted Matrix username: $matrixUsername, Full user ID: $fullMatrixUserId")
                 
-                // Try to login first (for existing users), then register if needed
+                // Try to login first (for existing users), then handle password reset or registration
                 val sessionId = try {
                     Timber.d("Attempting login for existing Matrix user: $matrixUsername")
                     val loginResult = matrixAuthenticationService.login(matrixUsername, password)
@@ -126,14 +154,44 @@ class DefaultMatrixIntegrationService
                     }
                     loginResult.getOrThrow()
                 } catch (loginException: Exception) {
-                    Timber.d("Login failed, attempting registration: ${loginException.message}")
+                    Timber.d("Login failed, checking if user exists: ${loginException.message}")
                     
-                    // Register the user with the Matrix homeserver
-                    try {
-                        registerMatrixUser(matrixUsername, password, displayName)
-                    } catch (registrationException: Exception) {
-                        Timber.e(registrationException, "Matrix registration failed")
-                        throw Exception("Matrix registration failed: ${registrationException.message}", registrationException)
+                    // Check if the error indicates wrong password vs user doesn't exist
+                    val errorMessage = loginException.message?.lowercase() ?: ""
+                    
+                    if (errorMessage.contains("invalid username or password") || errorMessage.contains("forbidden")) {
+                        // User might exist but password is wrong - try to reset password first
+                        try {
+                            Timber.d("Attempting to reset Matrix password for existing user: $matrixUsername")
+                            resetMatrixUserPassword(matrixUsername, password)
+                            
+                            // Try login again with new password
+                            val retryLoginResult = matrixAuthenticationService.login(matrixUsername, password)
+                            if (retryLoginResult.isSuccess) {
+                                Timber.d("Login successful after password reset")
+                                retryLoginResult.getOrThrow()
+                            } else {
+                                throw retryLoginResult.exceptionOrNull() ?: Exception("Login failed after password reset")
+                            }
+                        } catch (resetException: Exception) {
+                            Timber.d("Password reset failed, attempting registration: ${resetException.message}")
+                            
+                            // If password reset fails, try registration
+                            try {
+                                registerMatrixUser(matrixUsername, password, displayName)
+                            } catch (registrationException: Exception) {
+                                Timber.e(registrationException, "Matrix registration failed")
+                                throw Exception("Matrix registration failed: ${registrationException.message}", registrationException)
+                            }
+                        }
+                    } else {
+                        // User doesn't exist, try registration
+                        try {
+                            registerMatrixUser(matrixUsername, password, displayName)
+                        } catch (registrationException: Exception) {
+                            Timber.e(registrationException, "Matrix registration failed")
+                            throw Exception("Matrix registration failed: ${registrationException.message}", registrationException)
+                        }
                     }
                 }
                 
@@ -160,143 +218,98 @@ class DefaultMatrixIntegrationService
         ): SessionId =
             withContext(Dispatchers.IO) {
                 try {
-                    Timber.d("Starting Matrix user registration for username: $username")
+                    Timber.d("Starting Matrix user registration using shared secret for username: $username")
                     
-                    // Step 1: Get registration flow
-                    val registerUrl = "$MATRIX_HOMESERVER_URL/_matrix/client/v3/register"
-                    Timber.d("Registration URL: $registerUrl")
+                    // Step 1: Get a nonce from the admin API
+                    val nonceUrl = "$MATRIX_HOMESERVER_URL/_synapse/admin/v1/register"
+                    Timber.d("Getting nonce from: $nonceUrl")
 
-                    val initialRequest =
-                        Request.Builder()
-                            .url(registerUrl)
-                            .post("{}".toRequestBody("application/json".toMediaType()))
-                            .build()
+                    val nonceRequest = Request.Builder()
+                        .url(nonceUrl)
+                        .get()
+                        .build()
 
-                    val initialResponse = httpClient.newCall(initialRequest).execute()
-                    val responseBody = initialResponse.body?.string() ?: ""
+                    val nonceResponse = httpClient.newCall(nonceRequest).execute()
+                    val nonceResponseBody = nonceResponse.body?.string() ?: ""
                     
-                    Timber.d("Matrix registration flow response code: ${initialResponse.code}")
-                    Timber.d("Matrix registration flow response: $responseBody")
+                    Timber.d("Nonce response code: ${nonceResponse.code}")
+                    Timber.d("Nonce response: $nonceResponseBody")
                     
-                    if (!initialResponse.isSuccessful) {
-                        Timber.e("Failed to get registration flow: ${initialResponse.code} ${initialResponse.message}")
-                        throw Exception("Failed to get registration flow: ${initialResponse.code} ${initialResponse.message} - $responseBody")
+                    if (!nonceResponse.isSuccessful) {
+                        Timber.e("Failed to get nonce: ${nonceResponse.code} ${nonceResponse.message}")
+                        throw Exception("Failed to get nonce: ${nonceResponse.code} ${nonceResponse.message} - $nonceResponseBody")
                     }
 
-                    val flowResponse = try {
-                        json.decodeFromString<MatrixRegisterFlowResponse>(responseBody)
+                    // Parse nonce manually to avoid serialization issues
+                    val nonce = try {
+                        val jsonObject = org.json.JSONObject(nonceResponseBody)
+                        jsonObject.getString("nonce")
                     } catch (e: Exception) {
-                        Timber.e(e, "Failed to parse registration flow response: $responseBody")
-                        throw Exception("Invalid registration flow response from server: ${e.message}")
+                        Timber.e(e, "Failed to parse nonce response: $nonceResponseBody")
+                        throw Exception("Invalid nonce response from server: ${e.message}")
                     }
+                    Timber.d("Received nonce: $nonce")
 
-                    Timber.d("Registration flow parsed successfully. Session: ${flowResponse.session}")
-                    Timber.d("Available flows: ${flowResponse.flows.map { it.stages }}")
+                    // Step 2: Generate HMAC-SHA1 digest
+                    val mac = generateHmacSha1(nonce, username, password, admin = false, REGISTRATION_SHARED_SECRET)
+                    Timber.d("Generated HMAC digest")
 
-                    // Step 2: First stage - registration token authentication
-                    val tokenRequest =
-                        MatrixRegisterRequest(
-                            username = username,
-                            password = password,
-                            initial_device_display_name = "Element X Android - $displayName",
-                            auth =
-                                MatrixAuthData(
-                                    type = "m.login.registration_token",
-                                    session = flowResponse.session,
-                                    token = REGISTRATION_TOKEN,
-                                ),
-                        )
+                    // Step 3: Register the user - create JSON manually to avoid serialization issues
+                    val registerRequestJson = org.json.JSONObject().apply {
+                        put("nonce", nonce)
+                        put("username", username)
+                        put("displayname", displayName)
+                        put("password", password)
+                        put("admin", false)
+                        put("mac", mac)
+                    }.toString()
 
-                    val tokenRequestBody =
-                        json.encodeToString(tokenRequest)
-                            .toRequestBody("application/json".toMediaType())
+                    val registerRequestBody = registerRequestJson.toRequestBody("application/json".toMediaType())
 
-                    Timber.d("Matrix token registration request: ${json.encodeToString(tokenRequest)}")
+                    Timber.d("Matrix shared secret registration request prepared")
 
-                    val tokenRequestHttp =
-                        Request.Builder()
-                            .url(registerUrl)
-                            .post(tokenRequestBody)
-                            .build()
+                    val registerHttpRequest = Request.Builder()
+                        .url(nonceUrl)
+                        .post(registerRequestBody)
+                        .build()
 
-                    val tokenResponse = httpClient.newCall(tokenRequestHttp).execute()
-                    val tokenResponseBody = tokenResponse.body?.string() ?: ""
-                    
-                    Timber.d("Matrix token registration response code: ${tokenResponse.code}")
-                    Timber.d("Matrix token registration response: $tokenResponseBody")
-
-                    if (!tokenResponse.isSuccessful) {
-                        Timber.e("Token registration failed: ${tokenResponse.code} ${tokenResponse.message}")
-                        throw Exception("Token registration failed: ${tokenResponse.code} ${tokenResponse.message} - $tokenResponseBody")
-                    }
-
-                    // Parse the intermediate response (should show token stage completed)
-                    val tokenFlowResponse = try {
-                        json.decodeFromString<MatrixRegisterFlowResponse>(tokenResponseBody)
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to parse token registration response: $tokenResponseBody")
-                        throw Exception("Invalid token registration response from server: ${e.message}")
-                    }
-
-                    Timber.d("Token registration successful. Completed stages: ${tokenFlowResponse.completed}")
-
-                    // Step 3: Second stage - dummy authentication to complete registration
-                    val dummyRequest =
-                        MatrixRegisterRequest(
-                            username = username,
-                            password = password,
-                            initial_device_display_name = "Element X Android - $displayName",
-                            auth =
-                                MatrixAuthData(
-                                    type = "m.login.dummy",
-                                    session = tokenFlowResponse.session,
-                                ),
-                        )
-
-                    val dummyRequestBody =
-                        json.encodeToString(dummyRequest)
-                            .toRequestBody("application/json".toMediaType())
-
-                    Timber.d("Matrix dummy registration request: ${json.encodeToString(dummyRequest)}")
-
-                    val dummyRequestHttp =
-                        Request.Builder()
-                            .url(registerUrl)
-                            .post(dummyRequestBody)
-                            .build()
-
-                    val registerResponse = httpClient.newCall(dummyRequestHttp).execute()
+                    val registerResponse = httpClient.newCall(registerHttpRequest).execute()
                     val registerResponseBody = registerResponse.body?.string() ?: ""
                     
-                    Timber.d("Matrix final registration response code: ${registerResponse.code}")
-                    Timber.d("Matrix final registration response: $registerResponseBody")
+                    Timber.d("Matrix registration response code: ${registerResponse.code}")
+                    Timber.d("Matrix registration response: $registerResponseBody")
 
                     if (!registerResponse.isSuccessful) {
-                        Timber.e("Final registration failed: ${registerResponse.code} ${registerResponse.message}")
-                        throw Exception("Final registration failed: ${registerResponse.code} ${registerResponse.message} - $registerResponseBody")
+                        Timber.e("Matrix registration failed: ${registerResponse.code} ${registerResponse.message}")
+                        throw Exception("Matrix registration failed: ${registerResponse.code} ${registerResponse.message} - $registerResponseBody")
                     }
 
-                    val registerResult = try {
-                        json.decodeFromString<MatrixRegisterResponse>(registerResponseBody)
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to parse final registration response: $registerResponseBody")
-                        throw Exception("Invalid final registration response from server: ${e.message}")
-                    }
-
-                    Timber.d("Matrix registration successful. User ID: ${registerResult.user_id}")
-                    Timber.d("Access token length: ${registerResult.access_token.length}")
-                    Timber.d("Device ID: ${registerResult.device_id}")
-
-                    // Step 3: Create external session and import it
-                    val externalSession =
-                        ExternalSession(
-                            userId = registerResult.user_id,
-                            homeserverUrl = MATRIX_HOMESERVER_URL,
-                            accessToken = registerResult.access_token,
-                            deviceId = registerResult.device_id,
-                            refreshToken = null,
-                            slidingSyncProxy = null,
+                    // Parse registration response manually to avoid serialization issues
+                    val (userId, accessToken, deviceId) = try {
+                        val jsonObject = org.json.JSONObject(registerResponseBody)
+                        Triple(
+                            jsonObject.getString("user_id"),
+                            jsonObject.getString("access_token"),
+                            jsonObject.getString("device_id")
                         )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to parse registration response: $registerResponseBody")
+                        throw Exception("Invalid registration response from server: ${e.message}")
+                    }
+
+                    Timber.d("Matrix registration successful. User ID: $userId")
+                    Timber.d("Access token length: ${accessToken.length}")
+                    Timber.d("Device ID: $deviceId")
+
+                    // Step 4: Create external session and import it
+                    val externalSession = ExternalSession(
+                        userId = userId,
+                        homeserverUrl = MATRIX_HOMESERVER_URL,
+                        accessToken = accessToken,
+                        deviceId = deviceId,
+                        refreshToken = null,
+                        slidingSyncProxy = null,
+                    )
 
                     Timber.d("Creating external session for import")
 
@@ -329,5 +342,63 @@ class DefaultMatrixIntegrationService
             return username.lowercase()
                 .replace(Regex("[^a-z0-9_]"), "_")
                 .take(32) // Matrix usernames have limits
+        }
+        
+        private fun generateHmacSha1(
+            nonce: String,
+            username: String,
+            password: String,
+            admin: Boolean,
+            sharedSecret: String
+        ): String {
+            val adminString = if (admin) "admin" else "notadmin"
+            val content = "$nonce\u0000$username\u0000$password\u0000$adminString"
+            
+            val keySpec = SecretKeySpec(sharedSecret.toByteArray(), "HmacSHA1")
+            val mac = Mac.getInstance("HmacSHA1")
+            mac.init(keySpec)
+            val result = mac.doFinal(content.toByteArray())
+            
+            return result.joinToString("") { "%02x".format(it) }
+        }
+
+        private suspend fun resetMatrixUserPassword(
+            username: String,
+            newPassword: String,
+        ): Unit = withContext(Dispatchers.IO) {
+            try {
+                Timber.d("Resetting Matrix password for user: $username")
+                
+                // Use the admin API to reset user password
+                val resetUrl = "$MATRIX_HOMESERVER_URL/_synapse/admin/v2/users/@$username:signout.io"
+                
+                val resetRequestJson = org.json.JSONObject().apply {
+                    put("password", newPassword)
+                }.toString()
+                
+                val resetRequestBody = resetRequestJson.toRequestBody("application/json".toMediaType())
+                
+                val resetRequest = Request.Builder()
+                    .url(resetUrl)
+                    .put(resetRequestBody)
+                    .addHeader("Authorization", "Bearer $ADMIN_ACCESS_TOKEN")
+                    .build()
+                
+                val resetResponse = httpClient.newCall(resetRequest).execute()
+                val resetResponseBody = resetResponse.body?.string() ?: ""
+                
+                Timber.d("Password reset response code: ${resetResponse.code}")
+                Timber.d("Password reset response: $resetResponseBody")
+                
+                if (!resetResponse.isSuccessful) {
+                    Timber.e("Password reset failed: ${resetResponse.code} ${resetResponse.message}")
+                    throw Exception("Password reset failed: ${resetResponse.code} ${resetResponse.message} - $resetResponseBody")
+                }
+                
+                Timber.d("Password reset successful for user: $username")
+            } catch (e: Exception) {
+                Timber.e(e, "Password reset failed with exception: ${e.message}")
+                throw e
+            }
         }
     } 

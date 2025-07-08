@@ -32,14 +32,16 @@ class VerificationNode
         
         data class Inputs(
             val username: String,
-            val email: String
+            val email: String,
+            val password: String
         ) : NodeInputs
         
         private val inputs = inputs<Inputs>()
         private val presenter = presenterFactory.create(
             VerificationPresenter.Params(
                 username = inputs.username,
-                email = inputs.email
+                email = inputs.email,
+                password = inputs.password
             )
         )
         

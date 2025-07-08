@@ -29,7 +29,7 @@ class RegisterNode
         interface Callback : Plugin {
             fun onNavigateToLogin()
 
-            fun onNavigateToVerification(username: String, email: String)
+            fun onNavigateToVerification(username: String, email: String, password: String)
         }
 
         @Composable
@@ -39,7 +39,7 @@ class RegisterNode
             // Handle successful registration
             if (state.isRegistrationSuccessful && state.registrationUsername != null) {
                 plugins<Callback>().forEach { 
-                    it.onNavigateToVerification(state.registrationUsername, state.email) 
+                    it.onNavigateToVerification(state.registrationUsername, state.email, state.password) 
                 }
             }
 

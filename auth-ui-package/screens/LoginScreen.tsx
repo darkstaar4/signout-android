@@ -39,6 +39,21 @@ export default function LoginScreen() {
   const [isResetPasswordLoading, setIsResetPasswordLoading] = useState(false);
   const { login } = useAuth();
 
+  // Force light mode colors - always use light theme
+  const colors = {
+    background: '#ffffff',
+    surface: '#ffffff',
+    primary: '#0EA5E9',
+    text: '#000000',        // Pure black for maximum visibility
+    textSecondary: '#333333', // Dark gray for secondary text
+    border: '#E2E8F0',
+    error: '#EF4444',
+    modalOverlay: 'rgba(0, 0, 0, 0.5)',
+    modalBackground: '#fff',
+    securityBackground: '#F0F9FF',
+    logoBackground: 'rgba(14, 165, 233, 0.1)',
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       setError('Email and password are required.');
@@ -169,54 +184,64 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.mainContainer}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.container}>
-            <View style={styles.logoContainer}>
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.logoContainer, { backgroundColor: colors.logoBackground }]}>
               <Image
                 source={require('../assets/SignoutSquareLogo.png')} // Update path as needed
                 style={styles.logo}
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.title}>Sign in to Your App</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.text }]}>Sign in to Your App</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               Secure messaging platform for healthcare providers
             </Text>
 
-            <View style={styles.securityInfo}>
+            <View style={[styles.securityInfo, { backgroundColor: colors.securityBackground }]}>
               <Shield color="#0EA5E9" size={20} />
-              <Text style={styles.securityText}>
+              <Text style={[styles.securityText, { color: colors.primary }]}>
                 Encrypted, secure, and HIPAA-compliant
               </Text>
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  color: colors.text, 
+                  backgroundColor: colors.surface, 
+                  borderColor: colors.border 
+                }]}
                 placeholder="you@email.com"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
               />
-              <Text style={styles.label}>Password</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Password</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  color: colors.text, 
+                  backgroundColor: colors.surface, 
+                  borderColor: colors.border 
+                }]}
                 placeholder="Password"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
               />
             </View>
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
             <TouchableOpacity
               style={[
@@ -237,7 +262,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleRegister} style={styles.registerCta}>
-              <Text style={styles.registerText}>Don't have an account? <Text style={styles.registerNow}>Register now</Text></Text>
+              <Text style={[styles.registerText, { color: colors.textSecondary }]}>Don't have an account? <Text style={styles.registerNow}>Register now</Text></Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -251,15 +276,20 @@ export default function LoginScreen() {
         onRequestClose={() => setShowForgotPassword(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Forgot Password</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, { backgroundColor: colors.modalBackground }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Forgot Password</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
               Enter your email address and we'll send you a temporary password.
             </Text>
             
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Enter your email"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               value={forgotPasswordEmail}
@@ -299,31 +329,46 @@ export default function LoginScreen() {
         onRequestClose={() => setShowResetPassword(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Reset Password</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, { backgroundColor: colors.modalBackground }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Reset Password</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
               Enter the temporary password from your email and set a new password.
             </Text>
             
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Temporary password from email"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={tempPassword}
               onChangeText={setTempPassword}
             />
             
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="New password"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={newPassword}
               onChangeText={setNewPassword}
             />
             
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Confirm new password"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -367,7 +412,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -376,7 +420,6 @@ const styles = StyleSheet.create({
     height: 120,
     marginBottom: 32,
     borderRadius: 30,
-    backgroundColor: 'rgba(14, 165, 233, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -387,20 +430,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
     textAlign: 'center',
     marginBottom: 32,
   },
   securityInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F9FF',
     padding: 12,
     borderRadius: 8,
     marginBottom: 32,
@@ -408,7 +448,6 @@ const styles = StyleSheet.create({
   },
   securityText: {
     marginLeft: 8,
-    color: '#0EA5E9',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -420,18 +459,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0F172A',
     marginBottom: 8,
   },
   input: {
     padding: 14,
     fontSize: 16,
-    color: '#0F172A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: '#F8FAFC',
   },
   continueButton: {
     backgroundColor: '#0EA5E9',
@@ -463,7 +498,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   registerText: {
-    color: '#64748B',
     fontSize: 15,
     textAlign: 'center',
   },
@@ -472,7 +506,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   error: {
-    color: 'red',
     marginBottom: 16,
   },
   forgotPasswordCta: {
@@ -492,7 +525,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     padding: 24,
     borderRadius: 8,
     width: '80%',
@@ -501,25 +533,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
     textAlign: 'center',
     marginBottom: 12,
   },
   modalSubtitle: {
     fontSize: 16,
-    color: '#64748B',
     textAlign: 'center',
     marginBottom: 32,
   },
   modalInput: {
     padding: 14,
     fontSize: 16,
-    color: '#0F172A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: '#F8FAFC',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -558,7 +585,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   mainContainer: {
     flex: 1,

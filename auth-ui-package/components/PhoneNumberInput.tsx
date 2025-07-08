@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform, ScrollView, Modal } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
-import { useTheme } from '@/context/ThemeContext';
 
 export type CountryCode = {
   code: string;
@@ -33,7 +32,17 @@ export default function PhoneNumberInput({
   error,
   forceLightTheme = false
 }: PhoneNumberInputProps & { forceLightTheme?: boolean }) {
-  const { isDark } = useTheme();
+  // Try to get theme context, but default to light theme if not available
+  let isDark = false;
+  try {
+    const { useTheme } = require('@/context/ThemeContext');
+    const theme = useTheme();
+    isDark = theme?.isDark || false;
+  } catch (e) {
+    // Theme context not available, default to light
+    isDark = false;
+  }
+
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(COUNTRY_CODES[0]);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -165,9 +174,9 @@ export default function PhoneNumberInput({
               {selectedCountry.dialCode}
             </Text>
             {showCountryPicker ? (
-              <ChevronUp size={16} color={shouldUseLightTheme ? '#94A3B8' : '#64748B'} />
+              <ChevronUp size={16} color={shouldUseLightTheme ? '#666666' : '#64748B'} />
             ) : (
-              <ChevronDown size={16} color={shouldUseLightTheme ? '#94A3B8' : '#64748B'} />
+              <ChevronDown size={16} color={shouldUseLightTheme ? '#666666' : '#64748B'} />
             )}
           </TouchableOpacity>
         </View>
@@ -182,7 +191,7 @@ export default function PhoneNumberInput({
           value={phoneNumber}
           onChangeText={handlePhoneNumberChange}
           placeholder={placeholder}
-          placeholderTextColor={shouldUseLightTheme ? '#94A3B8' : '#64748B'}
+          placeholderTextColor={shouldUseLightTheme ? '#666666' : '#64748B'}
           editable={editable}
           keyboardType="phone-pad"
           maxLength={15}
@@ -303,7 +312,7 @@ const styles = StyleSheet.create({
   countryCode: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0F172A',
+    color: '#000000',
     marginRight: 4,
   },
   countryCodeDark: {
@@ -315,7 +324,7 @@ const styles = StyleSheet.create({
   phoneInput: {
     flex: 1,
     fontSize: 16,
-    color: '#0F172A',
+    color: '#000000',
     paddingHorizontal: 12,
     paddingVertical: 12,
     backgroundColor: 'transparent',
@@ -376,7 +385,7 @@ const styles = StyleSheet.create({
   },
   modalDropdownItemText: {
     fontSize: 16,
-    color: '#0F172A',
+    color: '#000000',
     flex: 1,
   },
   modalDropdownItemTextSelected: {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, Modal, Dimensions } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
-import { useTheme } from '@/context/ThemeContext';
 
 export type DropdownOption = {
   label: string;
@@ -27,7 +26,17 @@ export default function CustomDropdown({
   error,
   forceLightTheme = false
 }: CustomDropdownProps) {
-  const { isDark } = useTheme();
+  // Try to get theme context, but default to light theme if not available
+  let isDark = false;
+  try {
+    const { useTheme } = require('@/context/ThemeContext');
+    const theme = useTheme();
+    isDark = theme?.isDark || false;
+  } catch (e) {
+    // Theme context not available, default to light
+    isDark = false;
+  }
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 });
   const dropdownRef = useRef<TouchableOpacity>(null);
@@ -90,9 +99,9 @@ export default function CustomDropdown({
             {getDisplayValue()}
           </Text>
           {showDropdown ? (
-            <ChevronUp size={16} color={shouldUseLightTheme ? '#94A3B8' : '#64748B'} />
+            <ChevronUp size={16} color={shouldUseLightTheme ? '#666666' : '#64748B'} />
           ) : (
-            <ChevronDown size={16} color={shouldUseLightTheme ? '#94A3B8' : '#64748B'} />
+            <ChevronDown size={16} color={shouldUseLightTheme ? '#666666' : '#64748B'} />
           )}
         </TouchableOpacity>
       </View>
@@ -200,7 +209,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 16,
-    color: '#0F172A',
+    color: '#000000',
     flex: 1,
   },
   dropdownTextDark: {
@@ -210,7 +219,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   placeholderText: {
-    color: '#94A3B8',
+    color: '#666666',
   },
   errorText: {
     fontSize: 12,
@@ -256,7 +265,7 @@ const styles = StyleSheet.create({
   },
   modalDropdownItemText: {
     fontSize: 16,
-    color: '#0F172A',
+    color: '#000000',
   },
   modalDropdownItemTextSelected: {
     fontWeight: '600',

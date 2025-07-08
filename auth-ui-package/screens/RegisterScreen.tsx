@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Platform, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Platform, KeyboardAvoidingView, ScrollView, Alert, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { Shield, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
@@ -114,6 +114,21 @@ const SPECIALTIES = [
 ];
 
 export default function RegisterScreen() {
+  // Force light mode colors - always use light theme
+  const colors = {
+    background: '#ffffff',
+    surface: '#ffffff',
+    primary: '#0EA5E9',
+    text: '#000000',        // Pure black for maximum visibility
+    textSecondary: '#333333', // Dark gray for secondary text
+    border: '#E2E8F0',
+    error: '#EF4444',
+    modalOverlay: 'rgba(0, 0, 0, 0.5)',
+    modalBackground: '#fff',
+    securityBackground: '#F0F9FF',
+    logoBackground: 'rgba(14, 165, 233, 0.1)',
+  };
+
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -232,65 +247,86 @@ export default function RegisterScreen() {
   };
 
   return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          <View style={styles.logoContainer}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.logoContainer, { backgroundColor: colors.logoBackground }]}>
             <Image
               source={require('@/assets/images/SignoutSquareLogo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.title}>Register for Signout</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.text }]}>Register for Signout</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Start your secure healthcare communication journey
           </Text>
 
-          <View style={styles.securityInfo}>
+          <View style={[styles.securityInfo, { backgroundColor: colors.securityBackground }]}>
             <Shield color="#0EA5E9" size={20} />
-            <Text style={styles.securityText}>
+            <Text style={[styles.securityText, { color: colors.primary }]}>
               Encrypted, secure, and HIPAA-compliant
             </Text>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email Address *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="you@email.com"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
             />
-            <Text style={styles.label}>Confirm Email Address *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Confirm Email Address *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Confirm your email"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               value={confirmEmail}
               onChangeText={setConfirmEmail}
             />
-            <Text style={styles.label}>First Name *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>First Name *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="First Name"
+              placeholderTextColor={colors.textSecondary}
               value={firstName}
               onChangeText={setFirstName}
             />
-            <Text style={styles.label}>Last Name *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Last Name *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Last Name"
+              placeholderTextColor={colors.textSecondary}
               value={lastName}
               onChangeText={setLastName}
             />
-            <Text style={styles.label}>Professional Title *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Professional Title *</Text>
             <CustomDropdown
               options={PROFESSIONAL_TITLES}
               value={professionalTitle}
@@ -298,7 +334,7 @@ export default function RegisterScreen() {
               placeholder="Select title..."
               forceLightTheme={true}
             />
-            <Text style={styles.label}>Specialty *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Specialty *</Text>
             <CustomDropdown
               options={SPECIALTIES}
               value={specialty}
@@ -306,39 +342,54 @@ export default function RegisterScreen() {
               placeholder="Select specialty..."
               forceLightTheme={true}
             />
-            <Text style={styles.label}>Phone Number *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Phone Number *</Text>
             <PhoneNumberInput
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               placeholder="Enter phone number"
               forceLightTheme={true}
             />
-            <Text style={styles.label}>Password *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Password *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Password (min 8 characters)"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
             />
-            <Text style={styles.label}>Confirm Password *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Confirm Password *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Confirm Password"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={confirmPassword}
               onChangeText={setConfirmPassword}
             />
-            <Text style={styles.label}>NPI Number (Optional)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>NPI Number (Optional)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="10-digit NPI"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               value={npi}
               onChangeText={setNpi}
               maxLength={10}
             />
-            <Text style={styles.label}>Country *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Country *</Text>
             <CustomDropdown
               options={COUNTRIES}
               value={country}
@@ -346,21 +397,31 @@ export default function RegisterScreen() {
               placeholder="Select country..."
               forceLightTheme={true}
             />
-            <Text style={styles.label}>Office Address *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Office Address *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="123 Main St"
+              placeholderTextColor={colors.textSecondary}
               value={officeAddress}
               onChangeText={setOfficeAddress}
             />
-            <Text style={styles.label}>City *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>City *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="City"
+              placeholderTextColor={colors.textSecondary}
               value={officeCity}
               onChangeText={setOfficeCity}
             />
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.text }]}>
               State {country === 'USA' ? '*' : '(Optional)'}
             </Text>
             {country === 'USA' ? (
@@ -373,16 +434,26 @@ export default function RegisterScreen() {
               />
             ) : (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  color: colors.text, 
+                  backgroundColor: colors.surface, 
+                  borderColor: colors.border 
+                }]}
                 placeholder="State/Province"
+                placeholderTextColor={colors.textSecondary}
                 value={officeState}
                 onChangeText={setOfficeState}
               />
             )}
-            <Text style={styles.label}>Zip Code *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Zip Code *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                color: colors.text, 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border 
+              }]}
               placeholder="Zip Code"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="number-pad"
               value={officeZip}
               onChangeText={setOfficeZip}
@@ -390,7 +461,7 @@ export default function RegisterScreen() {
             />
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
           <TouchableOpacity
             style={[
@@ -406,11 +477,12 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleBackToLogin} style={styles.registerCta}>
-            <Text style={styles.registerText}>Already have an account? <Text style={styles.registerNow}>Back to login</Text></Text>
+            <Text style={[styles.registerText, { color: colors.textSecondary }]}>Already have an account? <Text style={styles.registerNow}>Back to login</Text></Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -421,7 +493,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -430,7 +501,6 @@ const styles = StyleSheet.create({
     height: 120,
     marginBottom: 32,
     borderRadius: 30,
-    backgroundColor: 'rgba(14, 165, 233, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -441,20 +511,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
     textAlign: 'center',
     marginBottom: 32,
   },
   securityInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F9FF',
     padding: 12,
     borderRadius: 8,
     marginBottom: 32,
@@ -462,7 +529,6 @@ const styles = StyleSheet.create({
   },
   securityText: {
     marginLeft: 8,
-    color: '#0EA5E9',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -474,23 +540,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0F172A',
     marginBottom: 8,
   },
   input: {
     padding: 14,
     fontSize: 16,
-    color: '#0F172A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: '#F8FAFC',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   continueButton: {
     backgroundColor: '#0EA5E9',
@@ -515,22 +572,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  error: {
-    color: '#EF4444',
-    fontSize: 15,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   registerCta: {
     marginTop: 8,
   },
   registerText: {
-    color: '#64748B',
     fontSize: 15,
     textAlign: 'center',
   },
   registerNow: {
     color: '#0EA5E9',
     fontWeight: '700',
+  },
+  error: {
+    marginBottom: 16,
+  },
+  safeArea: {
+    flex: 1,
   },
 }); 

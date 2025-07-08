@@ -57,7 +57,7 @@ class CustomAuthFlowNode
             data object Register : NavTarget
 
             @Parcelize
-            data class Verification(val username: String, val email: String) : NavTarget
+            data class Verification(val username: String, val email: String, val password: String) : NavTarget
 
             @Parcelize
             data object Credentials : NavTarget
@@ -111,8 +111,8 @@ class CustomAuthFlowNode
                                 backstack.pop()
                             }
 
-                            override fun onNavigateToVerification(username: String, email: String) {
-                                backstack.push(NavTarget.Verification(username, email))
+                            override fun onNavigateToVerification(username: String, email: String, password: String) {
+                                backstack.push(NavTarget.Verification(username, email, password))
                             }
                         }
                     createNode<RegisterNode>(buildContext, plugins = listOf(callback))
@@ -135,7 +135,8 @@ class CustomAuthFlowNode
                         buildContext,
                         plugins = listOf(callback, VerificationNode.Inputs(
                             username = navTarget.username,
-                            email = navTarget.email
+                            email = navTarget.email,
+                            password = navTarget.password
                         ))
                     )
                 }
