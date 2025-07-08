@@ -26,6 +26,9 @@ dependencies {
     api(projects.libraries.usersearch.api)
     implementation(libs.kotlinx.collections.immutable)
 
+    // AWS Cognito SDK for user search functionality
+    implementation("com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.77.0")
+
     testImplementation(libs.test.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.molecule.runtime)
