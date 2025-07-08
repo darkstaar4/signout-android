@@ -36,6 +36,7 @@
   <string name="screen_edit_profile_error_title">"Unable to update profile"</string>
   <string name="screen_edit_profile_title">"Edit profile"</string>
   <string name="screen_edit_profile_updating_details">"Updating profile…"</string>
+  <string name="common_profile">"Profile"</string>
   <string name="screen_notification_settings_additional_settings_section_title">"Additional settings"</string>
   <string name="screen_notification_settings_calls_label">"Audio and video calls"</string>
   <string name="screen_notification_settings_configuration_mismatch">"Configuration mismatch"</string>

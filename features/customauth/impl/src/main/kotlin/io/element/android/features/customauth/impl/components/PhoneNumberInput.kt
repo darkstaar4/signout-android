@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.element.android.features.customauth.impl.data.CountryCode
 import io.element.android.features.customauth.impl.data.DropdownData
+import androidx.compose.material3.MaterialTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,12 +188,12 @@ fun PhoneNumberInput(
                     shape = RoundedCornerShape(8.dp),
                     colors =
                         TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF8FAFC),
-                            unfocusedContainerColor = Color(0xFFF8FAFC),
-                            disabledContainerColor = Color(0xFFF1F5F9),
-                            focusedIndicatorColor = Color(0xFF0EA5E9),
-                            unfocusedIndicatorColor = Color(0xFFE2E8F0),
-                            disabledIndicatorColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            disabledContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
+                            disabledIndicatorColor = MaterialTheme.colorScheme.onSurface,
                         ),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
                 )
@@ -215,7 +216,7 @@ fun PhoneNumberInput(
                                     Text(
                                         text = "${country.dialCode} ${country.name}",
                                         fontSize = 14.sp,
-                                        color = if (country.code == selectedCountry.code) Color(0xFF0EA5E9) else Color(0xFF0F172A),
+                                        color = if (country.code == selectedCountry.code) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                         fontWeight = if (country.code == selectedCountry.code) FontWeight.SemiBold else FontWeight.Normal,
                                     )
                                 }
@@ -223,7 +224,7 @@ fun PhoneNumberInput(
                             onClick = { handleCountryChange(country.code) },
                             modifier =
                                 if (country.code == selectedCountry.code) {
-                                    Modifier.background(Color(0xFFF0F9FF))
+                                    Modifier.background(MaterialTheme.colorScheme.primaryContainer)
                                 } else {
                                     Modifier
                                 },
@@ -253,12 +254,12 @@ fun PhoneNumberInput(
                 shape = RoundedCornerShape(8.dp),
                 colors =
                     TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF8FAFC),
-                        unfocusedContainerColor = Color(0xFFF8FAFC),
-                        disabledContainerColor = Color(0xFFF1F5F9),
-                        focusedIndicatorColor = Color(0xFF0EA5E9),
-                        unfocusedIndicatorColor = Color(0xFFE2E8F0),
-                        disabledIndicatorColor = Color(0xFFE2E8F0),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
+                        disabledIndicatorColor = MaterialTheme.colorScheme.onSurface,
                     ),
                 maxLines = 1,
             )

@@ -24,22 +24,21 @@ import io.element.android.libraries.matrix.api.user.MatrixUser
 class EditUserProfileNode @AssistedInject constructor(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    presenterFactory: EditUserProfilePresenter.Factory,
+    private val presenterFactory: EditUserProfilePresenter.Factory,
 ) : Node(buildContext, plugins = plugins) {
     data class Inputs(
         val matrixUser: MatrixUser
     ) : NodeInputs
 
     val matrixUser = inputs<Inputs>().matrixUser
-    val presenter = presenterFactory.create(matrixUser)
 
     @Composable
     override fun View(modifier: Modifier) {
+        val presenter = presenterFactory.create(matrixUser)
         val state = presenter.present()
         EditUserProfileView(
             state = state,
-            onBackClick = ::navigateUp,
-            onEditProfileSuccess = ::navigateUp,
+            onBackClick = this::navigateUp,
             modifier = modifier
         )
     }

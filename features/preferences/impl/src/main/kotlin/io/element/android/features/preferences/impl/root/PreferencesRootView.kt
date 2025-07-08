@@ -54,6 +54,7 @@ fun PreferencesRootView(
     onOpenAdvancedSettings: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenUserProfile: (MatrixUser) -> Unit,
+    onOpenCognitoProfile: () -> Unit,
     onOpenBlockedUsers: () -> Unit,
     onSignOutClick: () -> Unit,
     onDeactivateClick: () -> Unit,
@@ -73,6 +74,17 @@ fun PreferencesRootView(
                 onOpenUserProfile(state.myUser)
             },
             user = state.myUser,
+        )
+
+        // Profile editing option
+        ListItem(
+            headlineContent = { Text("Profile") },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.UserProfile())),
+            trailingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.ArrowRight())),
+                            onClick = { 
+                    android.util.Log.d("elementx", "PreferencesRootView: Profile item clicked")
+                    state.eventSink(PreferencesRootEvents.OnOpenCognitoProfile) 
+                }
         )
 
         // 'Manage my app' section
@@ -302,6 +314,7 @@ private fun ContentToPreview(matrixUser: MatrixUser) {
         onOpenNotificationSettings = {},
         onOpenLockScreenSettings = {},
         onOpenUserProfile = {},
+        onOpenCognitoProfile = {},
         onOpenBlockedUsers = {},
         onSignOutClick = {},
         onDeactivateClick = {},

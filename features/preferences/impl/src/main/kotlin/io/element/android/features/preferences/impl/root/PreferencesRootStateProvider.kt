@@ -33,5 +33,6 @@ fun aPreferencesRootState(
     canDeactivateAccount = true,
     snackbarMessage = SnackbarMessage(CommonStrings.common_verification_complete),
     directLogoutState = aDirectLogoutState(),
+    pendingNavigationEvent = null,
     eventSink = eventSink,
 )

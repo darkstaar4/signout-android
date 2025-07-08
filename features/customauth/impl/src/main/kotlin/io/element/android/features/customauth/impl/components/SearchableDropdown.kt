@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -120,14 +121,14 @@ fun SearchableDropdown(
                 shape = RoundedCornerShape(8.dp),
                 colors =
                     TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF8FAFC),
-                        unfocusedContainerColor = Color(0xFFF8FAFC),
-                        disabledContainerColor = Color(0xFFF8FAFC), // Same as enabled to hide disabled state
-                        focusedIndicatorColor = Color(0xFF0EA5E9),
-                        unfocusedIndicatorColor = Color(0xFFE2E8F0),
-                        disabledIndicatorColor = Color(0xFFE2E8F0),
-                        disabledTextColor = Color(0xFF0F172A), // Normal text color when disabled
-                        disabledPlaceholderColor = Color(0xFF64748B), // Normal placeholder color
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface, // Same as enabled to hide disabled state
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
+                        disabledIndicatorColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface, // Normal text color when disabled
+                        disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant, // Normal placeholder color
                     ),
                 interactionSource = remember { MutableInteractionSource() },
             )
@@ -147,7 +148,7 @@ fun SearchableDropdown(
                         shape = RoundedCornerShape(12.dp),
                         colors =
                             CardDefaults.cardColors(
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.background,
                             ),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     ) {
@@ -159,7 +160,7 @@ fun SearchableDropdown(
                                 text = placeholder,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF0F172A),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 16.dp),
                             )
 
@@ -172,7 +173,7 @@ fun SearchableDropdown(
                                     Icon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = "Search",
-                                        tint = Color(0xFF64748B),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp),
                                     )
                                 },
@@ -192,10 +193,10 @@ fun SearchableDropdown(
                                 shape = RoundedCornerShape(8.dp),
                                 colors =
                                     TextFieldDefaults.colors(
-                                        focusedContainerColor = Color(0xFFF8FAFC),
-                                        unfocusedContainerColor = Color(0xFFF8FAFC),
-                                        focusedIndicatorColor = Color(0xFF0EA5E9),
-                                        unfocusedIndicatorColor = Color(0xFFE2E8F0),
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
                                     ),
                                 singleLine = true,
                             )
@@ -211,7 +212,7 @@ fun SearchableDropdown(
                                 ) {
                                     Text(
                                         text = "No options found",
-                                        color = Color(0xFF64748B),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 14.sp,
                                     )
                                 }
@@ -274,12 +275,12 @@ fun SearchableDropdown(
                 shape = RoundedCornerShape(8.dp),
                 colors =
                     TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF8FAFC),
-                        unfocusedContainerColor = Color(0xFFF8FAFC),
-                        disabledContainerColor = Color(0xFFF1F5F9),
-                        focusedIndicatorColor = Color(0xFF0EA5E9),
-                        unfocusedIndicatorColor = Color(0xFFE2E8F0),
-                        disabledIndicatorColor = Color(0xFFE2E8F0),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
+                        disabledIndicatorColor = MaterialTheme.colorScheme.onSurface,
                     ),
             )
 
@@ -310,7 +311,7 @@ fun SearchableDropdown(
                                 Text(
                                     text = option.label,
                                     fontSize = 15.sp,
-                                    color = if (option.value == value) Color(0xFF0EA5E9) else Color(0xFF0F172A),
+                                    color = if (option.value == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = if (option.value == value) FontWeight.SemiBold else FontWeight.Normal,
                                 )
                             }
@@ -321,7 +322,7 @@ fun SearchableDropdown(
                         },
                         modifier =
                             if (option.value == value) {
-                                Modifier.background(Color(0xFFF0F9FF))
+                                Modifier.background(MaterialTheme.colorScheme.primaryContainer)
                             } else {
                                 Modifier
                             },
@@ -344,7 +345,7 @@ private fun DropdownOptionItem(
             modifier
                 .fillMaxWidth()
                 .clickable { onClick() },
-        color = if (isSelected) Color(0xFFF0F9FF) else Color.Transparent,
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
         shape = RoundedCornerShape(6.dp),
     ) {
         Row(
@@ -371,7 +372,7 @@ private fun DropdownOptionItem(
             Text(
                 text = option.label,
                 fontSize = 15.sp,
-                color = if (isSelected) Color(0xFF0EA5E9) else Color(0xFF0F172A),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -385,7 +386,7 @@ private fun DropdownOptionItem(
                         Modifier
                             .size(6.dp)
                             .background(
-                                color = Color(0xFF0EA5E9),
+                                color = MaterialTheme.colorScheme.primary,
                                 shape = RoundedCornerShape(3.dp),
                             ),
                 )

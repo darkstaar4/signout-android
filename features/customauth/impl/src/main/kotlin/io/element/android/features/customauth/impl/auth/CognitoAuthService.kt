@@ -853,4 +853,59 @@ class CognitoAuthService
                     )
                 }
             }
+
+    suspend fun getCurrentUserDetails(): CognitoUserDetails? {
+        return withContext(Dispatchers.IO) {
+            suspendCoroutine { continuation ->
+                val currentUser = userPool.currentUser
+                if (currentUser == null) {
+                    continuation.resume(null)
+                    return@suspendCoroutine
+                }
+
+                currentUser.getDetailsInBackground(object : GetDetailsHandler {
+                    override fun onSuccess(userDetails: CognitoUserDetails?) {
+                        continuation.resume(userDetails)
+                    }
+
+                    override fun onFailure(exception: Exception?) {
+                        Timber.e(exception, "Failed to get user details")
+                        continuation.resume(null)
+                    }
+                })
+            }
+        }
     }
+
+    suspend fun updateUserAttributes(attributes: Map<String, String>): Boolean {
+        return withContext(Dispatchers.IO) {
+            suspendCoroutine { continuation ->
+                val currentUser = userPool.currentUser
+                if (currentUser == null) {
+                    continuation.resume(false)
+                    return@suspendCoroutine
+                }
+
+                val userAttributes = CognitoUserAttributes()
+                attributes.forEach { (key, value) ->
+                    userAttributes.addAttribute(key, value)
+                }
+
+                currentUser.updateAttributesInBackground(
+                    userAttributes,
+                    object : UpdateAttributesHandler {
+                        override fun onSuccess(attributesVerificationList: MutableList<CognitoUserCodeDeliveryDetails>?) {
+                            Timber.d("User attributes updated successfully")
+                            continuation.resume(true)
+                        }
+
+                        override fun onFailure(exception: Exception?) {
+                            Timber.e(exception, "Failed to update user attributes")
+                            continuation.resume(false)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}

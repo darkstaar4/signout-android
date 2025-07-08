@@ -77,6 +77,7 @@ dependencies {
     implementation(projects.features.deactivation.api)
     implementation(projects.features.home.api)
     implementation(projects.features.invite.api)
+    implementation(projects.features.customauth.impl)
     implementation(projects.services.analytics.api)
     implementation(projects.services.analytics.compose)
     implementation(projects.services.appnavstate.api)

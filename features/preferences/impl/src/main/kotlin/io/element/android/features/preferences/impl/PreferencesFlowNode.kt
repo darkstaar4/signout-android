@@ -34,6 +34,7 @@ import io.element.android.features.preferences.impl.notifications.NotificationSe
 import io.element.android.features.preferences.impl.notifications.edit.EditDefaultNotificationSettingNode
 import io.element.android.features.preferences.impl.root.PreferencesRootNode
 import io.element.android.features.preferences.impl.user.editprofile.EditUserProfileNode
+import io.element.android.features.preferences.impl.user.editprofile.CognitoProfileEditNode
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.architecture.appyx.canPop
@@ -100,6 +101,9 @@ class PreferencesFlowNode @AssistedInject constructor(
         data class UserProfile(val matrixUser: MatrixUser) : NavTarget
 
         @Parcelize
+        data object CognitoProfile : NavTarget
+
+        @Parcelize
         data object BlockedUsers : NavTarget
 
         @Parcelize
@@ -150,6 +154,11 @@ class PreferencesFlowNode @AssistedInject constructor(
 
                     override fun onOpenUserProfile(matrixUser: MatrixUser) {
                         backstack.push(NavTarget.UserProfile(matrixUser))
+                    }
+
+                    override fun onOpenCognitoProfile() {
+                        android.util.Log.d("elementx", "PreferencesFlowNode: onOpenCognitoProfile() called")
+                        backstack.push(NavTarget.CognitoProfile)
                     }
 
                     override fun onOpenBlockedUsers() {
@@ -241,6 +250,9 @@ class PreferencesFlowNode @AssistedInject constructor(
             is NavTarget.UserProfile -> {
                 val inputs = EditUserProfileNode.Inputs(navTarget.matrixUser)
                 createNode<EditUserProfileNode>(buildContext, listOf(inputs))
+            }
+            NavTarget.CognitoProfile -> {
+                createNode<CognitoProfileEditNode>(buildContext)
             }
             NavTarget.LockScreenSettings -> {
                 lockScreenEntryPoint.nodeBuilder(this, buildContext, LockScreenEntryPoint.Target.Settings).build()

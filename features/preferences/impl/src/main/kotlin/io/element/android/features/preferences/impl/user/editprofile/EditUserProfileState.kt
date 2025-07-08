@@ -10,6 +10,7 @@ package io.element.android.features.preferences.impl.user.editprofile
 import android.net.Uri
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.media.AvatarAction
 import io.element.android.libraries.permissions.api.PermissionsState
 import kotlinx.collections.immutable.ImmutableList

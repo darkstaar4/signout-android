@@ -59,6 +59,8 @@ class PreferencesRootPresenter @Inject constructor(
 
         val snackbarMessage by snackbarDispatcher.collectSnackbarMessageAsState()
         val hasAnalyticsProviders = remember { analyticsService.getAvailableAnalyticsProviders().isNotEmpty() }
+        
+        var pendingNavigationEvent: PreferencesRootEvents? by remember { mutableStateOf(null) }
 
         val showNotificationSettings = remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
@@ -107,6 +109,13 @@ class PreferencesRootPresenter @Inject constructor(
                 is PreferencesRootEvents.OnVersionInfoClick -> {
                     showDeveloperSettingsProvider.unlockDeveloperSettings(coroutineScope)
                 }
+                is PreferencesRootEvents.OnOpenCognitoProfile -> {
+                    android.util.Log.d("elementx", "PreferencesRootPresenter: OnOpenCognitoProfile event received")
+                    pendingNavigationEvent = event
+                }
+                is PreferencesRootEvents.ClearNavigationEvent -> {
+                    pendingNavigationEvent = null
+                }
             }
         }
 
@@ -127,6 +136,7 @@ class PreferencesRootPresenter @Inject constructor(
             showBlockedUsersItem = showBlockedUsersItem,
             directLogoutState = directLogoutState,
             snackbarMessage = snackbarMessage,
+            pendingNavigationEvent = pendingNavigationEvent,
             eventSink = ::handleEvent,
         )
     }

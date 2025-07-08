@@ -9,7 +9,6 @@ package io.element.android.features.preferences.impl.user.editprofile
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -52,7 +51,6 @@ import io.element.android.libraries.ui.strings.CommonStrings
 fun EditUserProfileView(
     state: EditUserProfileState,
     onBackClick: () -> Unit,
-    onEditProfileSuccess: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
@@ -124,7 +122,7 @@ fun EditUserProfileView(
                     progressText = stringResource(R.string.screen_edit_profile_updating_details),
                 )
             },
-            onSuccess = { onEditProfileSuccess() },
+            onSuccess = { },
             errorTitle = { stringResource(R.string.screen_edit_profile_error_title) },
             errorMessage = { stringResource(R.string.screen_edit_profile_error) },
             onErrorDismiss = { state.eventSink(EditUserProfileEvents.CancelSaveChanges) },
@@ -141,7 +139,6 @@ internal fun EditUserProfileViewPreview(@PreviewParameter(EditUserProfileStatePr
     ElementPreview {
         EditUserProfileView(
             onBackClick = {},
-            onEditProfileSuccess = {},
             state = state,
         )
     }

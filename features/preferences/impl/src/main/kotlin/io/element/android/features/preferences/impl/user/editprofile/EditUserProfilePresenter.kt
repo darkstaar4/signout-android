@@ -35,10 +35,12 @@ import io.element.android.libraries.mediapickers.api.PickerProvider
 import io.element.android.libraries.mediaupload.api.MediaPreProcessor
 import io.element.android.libraries.permissions.api.PermissionsEvents
 import io.element.android.libraries.permissions.api.PermissionsPresenter
+
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
 class EditUserProfilePresenter @AssistedInject constructor(
     @Assisted private val matrixUser: MatrixUser,
@@ -97,6 +99,8 @@ class EditUserProfilePresenter @AssistedInject constructor(
 
         val saveAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         val localCoroutineScope = rememberCoroutineScope()
+
+
         fun handleEvents(event: EditUserProfileEvents) {
             when (event) {
                 is EditUserProfileEvents.Save -> localCoroutineScope.saveChanges(userDisplayName, userAvatarUri, matrixUser, saveAction)
@@ -135,7 +139,7 @@ class EditUserProfilePresenter @AssistedInject constructor(
             saveButtonEnabled = canSave && saveAction.value !is AsyncAction.Loading,
             saveAction = saveAction.value,
             cameraPermissionState = cameraPermissionState,
-            eventSink = { handleEvents(it) },
+            eventSink = ::handleEvents,
         )
     }
 

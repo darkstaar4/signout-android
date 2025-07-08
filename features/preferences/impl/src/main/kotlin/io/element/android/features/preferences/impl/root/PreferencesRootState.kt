@@ -29,5 +29,6 @@ data class PreferencesRootState(
     val showBlockedUsersItem: Boolean,
     val directLogoutState: DirectLogoutState,
     val snackbarMessage: SnackbarMessage?,
+    val pendingNavigationEvent: PreferencesRootEvents?,
     val eventSink: (PreferencesRootEvents) -> Unit,
 )

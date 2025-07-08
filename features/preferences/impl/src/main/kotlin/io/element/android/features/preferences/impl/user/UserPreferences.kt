@@ -43,7 +43,7 @@ fun UserPreferences(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        MatrixUserHeader(
+    MatrixUserHeader(
             matrixUser = user,
             isCurrentUser = true // Hide Matrix ID in settings
         )

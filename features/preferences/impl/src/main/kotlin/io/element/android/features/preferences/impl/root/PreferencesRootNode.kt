@@ -42,6 +42,7 @@ class PreferencesRootNode @AssistedInject constructor(
         fun onOpenLockScreenSettings()
         fun onOpenAdvancedSettings()
         fun onOpenUserProfile(matrixUser: MatrixUser)
+        fun onOpenCognitoProfile()
         fun onOpenBlockedUsers()
         fun onSignOutClick()
         fun onOpenAccountDeactivation()
@@ -97,6 +98,10 @@ class PreferencesRootNode @AssistedInject constructor(
         plugins<Callback>().forEach { it.onOpenUserProfile(matrixUser) }
     }
 
+    private fun onOpenCognitoProfile() {
+        plugins<Callback>().forEach { it.onOpenCognitoProfile() }
+    }
+
     private fun onOpenBlockedUsers() {
         plugins<Callback>().forEach { it.onOpenBlockedUsers() }
     }
@@ -114,6 +119,17 @@ class PreferencesRootNode @AssistedInject constructor(
         val state = presenter.present()
         val activity = requireNotNull(LocalActivity.current)
         val isDark = ElementTheme.isLightTheme.not()
+        
+        // Handle navigation events from presenter
+        when (val event = state.pendingNavigationEvent) {
+            is PreferencesRootEvents.OnOpenCognitoProfile -> {
+                onOpenCognitoProfile()
+                // Clear the event after handling
+                state.eventSink(PreferencesRootEvents.ClearNavigationEvent)
+            }
+            else -> { /* No navigation event */ }
+        }
+        
         PreferencesRootView(
             state = state,
             modifier = modifier,
@@ -128,6 +144,7 @@ class PreferencesRootNode @AssistedInject constructor(
             onOpenNotificationSettings = this::onOpenNotificationSettings,
             onOpenLockScreenSettings = this::onOpenLockScreenSettings,
             onOpenUserProfile = this::onOpenUserProfile,
+            onOpenCognitoProfile = this::onOpenCognitoProfile,
             onOpenBlockedUsers = this::onOpenBlockedUsers,
             onSignOutClick = {
                 if (state.directLogoutState.canDoDirectSignOut) {
