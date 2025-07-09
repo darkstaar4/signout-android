@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import timber.log.Timber
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @ContributesBinding(SessionScope::class)
 class MatrixUserRepository @Inject constructor(
@@ -30,6 +33,19 @@ class MatrixUserRepository @Inject constructor(
     private val dataSource: UserListDataSource,
     private val userMappingService: UserMappingService
 ) : UserRepository {
+    
+    init {
+        // Initialize the user mapping service with default data
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                userMappingService.initializeWithDefaultData()
+                Timber.d("MatrixUserRepository: UserMappingService initialized with default data")
+            } catch (e: Exception) {
+                Timber.w(e, "MatrixUserRepository: Failed to initialize UserMappingService")
+            }
+        }
+    }
+    
     override fun search(query: String): Flow<UserSearchResultState> = flow {
         val shouldQueryProfile = MatrixPatterns.isUserId(query) && !client.isMe(UserId(query))
         val shouldFetchSearchResults = query.length >= MINIMUM_SEARCH_LENGTH

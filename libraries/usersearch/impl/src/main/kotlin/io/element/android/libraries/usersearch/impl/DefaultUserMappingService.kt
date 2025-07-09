@@ -77,6 +77,16 @@ class DefaultUserMappingService @Inject constructor() : UserMappingService {
                     lastName = "User",
                     email = "admin@signout.io",
                     avatarUrl = null
+                ),
+                UserMapping(
+                    matrixUserId = "@racexcars:signout.io",
+                    matrixUsername = "racexcars",
+                    cognitoUsername = "RaceXCars",
+                    displayName = "Race X Cars",
+                    firstName = "Race",
+                    lastName = "Cars",
+                    email = "racexcars@gmail.com",
+                    avatarUrl = null
                 )
             )
             
