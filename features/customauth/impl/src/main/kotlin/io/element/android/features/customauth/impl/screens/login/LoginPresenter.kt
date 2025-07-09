@@ -18,6 +18,7 @@ import io.element.android.features.customauth.impl.auth.CognitoAuthService
 import io.element.android.features.customauth.impl.auth.MatrixIntegrationService
 import io.element.android.libraries.architecture.Presenter
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 class LoginPresenter
@@ -57,7 +58,10 @@ class LoginPresenter
                                 try {
                                     val result = cognitoAuthService.login(username.trim(), password, matrixIntegrationService)
                                     if (result.isSuccess) {
-                                        // Login successful - set flag to trigger navigation
+                                        // Login successful - user mapping will be populated after Matrix session is established
+                                        Timber.d("Login successful, Matrix session will be established")
+                                        
+                                        // Set flag to trigger navigation
                                         isLoginSuccessful = true
                                     } else {
                                         errorMessage = result.error ?: "Login failed. Please try again."

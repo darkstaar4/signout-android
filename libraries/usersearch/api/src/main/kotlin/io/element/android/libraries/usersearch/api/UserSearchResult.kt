@@ -11,6 +11,7 @@ import io.element.android.libraries.matrix.api.user.MatrixUser
 
 data class UserSearchResult(
     val matrixUser: MatrixUser,
+    val userMapping: UserMapping? = null,
     val isUnresolved: Boolean = false,
 )
 

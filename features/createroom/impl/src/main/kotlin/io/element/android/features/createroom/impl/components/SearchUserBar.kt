@@ -104,9 +104,9 @@ fun SearchUserBar(
                     itemsIndexed(users) { index, searchResult ->
                         SearchMultipleUsersResultItem(
                             modifier = Modifier.fillMaxWidth(),
-                            searchResult = searchResult,
-                            isUserSelected = selectedUsers.contains(searchResult.matrixUser),
-                            onCheckedChange = { checked ->
+                            result = searchResult,
+                            isSelected = selectedUsers.contains(searchResult.matrixUser),
+                            onSelectionChanged = { checked ->
                                 if (checked) {
                                     onUserSelect(searchResult.matrixUser)
                                 } else {
@@ -122,8 +122,8 @@ fun SearchUserBar(
                     itemsIndexed(users) { index, searchResult ->
                         SearchSingleUserResultItem(
                             modifier = Modifier.fillMaxWidth(),
-                            searchResult = searchResult,
-                            onClick = { onUserSelect(searchResult.matrixUser) }
+                            result = searchResult,
+                            onUserSelected = { onUserSelect(searchResult.matrixUser) }
                         )
                         if (index < users.lastIndex) {
                             HorizontalDivider()

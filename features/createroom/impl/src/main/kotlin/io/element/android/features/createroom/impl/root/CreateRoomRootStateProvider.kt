@@ -23,12 +23,12 @@ open class CreateRoomRootStateProvider : PreviewParameterProvider<CreateRoomRoot
     override val values: Sequence<CreateRoomRootState>
         get() = sequenceOf(
             aCreateRoomRootState(),
-            aCreateRoomRootState(
+                            aCreateRoomRootState(
                 startDmAction = AsyncAction.Loading,
                 userListState = aMatrixUser().let {
                     aUserListState().copy(
                         searchQuery = it.userId.value,
-                        searchResults = SearchBarResultState.Results(persistentListOf(UserSearchResult(it, false))),
+                        searchResults = SearchBarResultState.Results(persistentListOf(UserSearchResult(it, userMapping = null, isUnresolved = false))),
                         selectedUsers = persistentListOf(it),
                         isSearchActive = true,
                     )
@@ -39,7 +39,7 @@ open class CreateRoomRootStateProvider : PreviewParameterProvider<CreateRoomRoot
                 userListState = aMatrixUser().let {
                     aUserListState().copy(
                         searchQuery = it.userId.value,
-                        searchResults = SearchBarResultState.Results(persistentListOf(UserSearchResult(it, false))),
+                        searchResults = SearchBarResultState.Results(persistentListOf(UserSearchResult(it, userMapping = null, isUnresolved = false))),
                         selectedUsers = persistentListOf(it),
                         isSearchActive = true,
                     )

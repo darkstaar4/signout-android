@@ -31,7 +31,7 @@ open class AddPeopleUserListStateProvider : PreviewParameterProvider<UserListSta
                 searchResults = SearchBarResultState.Results(
                     aMatrixUserList()
                         .mapIndexed { index, matrixUser ->
-                            UserSearchResult(matrixUser, index % 2 == 0)
+                            UserSearchResult(matrixUser, userMapping = null, isUnresolved = index % 2 == 0)
                         }
                         .toImmutableList()
                 ),

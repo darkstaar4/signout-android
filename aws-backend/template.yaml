@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'SignOut Cognito User Discovery API'
+
+Parameters:
+  UserPoolId:
+    Type: String
+    Description: 'The Cognito User Pool ID'
+    Default: 'us-east-1_ltpOFMyVw'  # Updated with actual User Pool ID
+  
+  CorsOrigin:
+    Type: String
+    Description: 'CORS origin for API Gateway'
+    Default: '*'
+  
+  MatrixDomain:
+    Type: String
+    Description: 'Matrix domain for user IDs'
+    Default: 'signout.io'
+  
+  Stage:
+    Type: String
+    Description: 'API Gateway stage'
+    Default: 'prod'
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        USER_POOL_ID: !Ref UserPoolId
+        CORS_ORIGIN: !Ref CorsOrigin
+        MATRIX_DOMAIN: !Ref MatrixDomain
+  
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: !Sub "'${CorsOrigin}'"
+
+Resources:
+  # API Gateway
+  CognitoUserApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      Description: 'API for Cognito user discovery and search'
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: !Sub "'${CorsOrigin}'"
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${CorsOrigin}'"
+              Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'${CorsOrigin}'"
+              Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+
+  # Lambda Function for User Discovery
+  UserDiscoveryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-user-discovery'
+      CodeUri: lambda/user-discovery/
+      Handler: index.handler
+      Description: 'Discover Cognito user by Matrix ID'
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+                - cognito-idp:ListUsers
+              Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}'
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/users/cognito/discover
+            Method: GET
+        OptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/users/cognito/discover
+            Method: OPTIONS
+
+  # Lambda Function for User Search
+  UserSearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-user-search'
+      CodeUri: lambda/user-search/
+      Handler: index.handler
+      Description: 'Search Cognito users by query'
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ListUsers
+                - cognito-idp:AdminGetUser
+              Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}'
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/users/cognito/search
+            Method: GET
+        OptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/users/cognito/search
+            Method: OPTIONS
+
+  # CloudWatch Log Groups
+  UserDiscoveryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-user-discovery'
+      RetentionInDays: 14
+
+  UserSearchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-user-search'
+      RetentionInDays: 14
+
+Outputs:
+  ApiGatewayUrl:
+    Description: 'API Gateway endpoint URL'
+    Value: !Sub 'https://${CognitoUserApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiUrl'
+  
+  UserDiscoveryEndpoint:
+    Description: 'User Discovery endpoint'
+    Value: !Sub 'https://${CognitoUserApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/api/v1/users/cognito/discover'
+    Export:
+      Name: !Sub '${AWS::StackName}-UserDiscoveryEndpoint'
+  
+  UserSearchEndpoint:
+    Description: 'User Search endpoint'
+    Value: !Sub 'https://${CognitoUserApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/api/v1/users/cognito/search'
+    Export:
+      Name: !Sub '${AWS::StackName}-UserSearchEndpoint'
+  
+  UserPoolId:
+    Description: 'Cognito User Pool ID used'
+    Value: !Ref UserPoolId
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolId' 

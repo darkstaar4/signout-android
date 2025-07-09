@@ -8,84 +8,143 @@
 package io.element.android.features.createroom.impl.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.element.android.compound.theme.ElementTheme
+import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
-import io.element.android.libraries.designsystem.preview.ElementThemedPreview
-import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
-import io.element.android.libraries.matrix.ui.components.CheckableUserRow
-import io.element.android.libraries.matrix.ui.components.CheckableUserRowData
-import io.element.android.libraries.matrix.ui.components.aMatrixUser
-import io.element.android.libraries.matrix.ui.model.getAvatarData
-import io.element.android.libraries.matrix.ui.model.getBestName
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
+import io.element.android.libraries.designsystem.components.list.ListItemContent
+import io.element.android.libraries.designsystem.preview.ElementPreview
+import io.element.android.libraries.designsystem.preview.PreviewsDayNight
+import io.element.android.libraries.designsystem.theme.components.Checkbox
+import io.element.android.libraries.designsystem.theme.components.ListItem
+import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.usersearch.api.UserSearchResult
+import io.element.android.libraries.usersearch.api.UserMapping
 
 @Composable
-fun SearchMultipleUsersResultItem(
-    searchResult: UserSearchResult,
-    isUserSelected: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+internal fun SearchMultipleUsersResultItem(
+    result: UserSearchResult,
+    isSelected: Boolean,
+    onSelectionChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val data = if (searchResult.isUnresolved) {
-        CheckableUserRowData.Unresolved(
-            avatarData = searchResult.matrixUser.getAvatarData(AvatarSize.UserListItem),
-            id = searchResult.matrixUser.userId.value,
-        )
-    } else {
-        CheckableUserRowData.Resolved(
-            name = searchResult.matrixUser.getBestName(),
-            subtext = if (searchResult.matrixUser.displayName.isNullOrEmpty()) null else searchResult.matrixUser.userId.value,
-            avatarData = searchResult.matrixUser.getAvatarData(AvatarSize.UserListItem),
-        )
+    val matrixUser = result.matrixUser
+    val userMapping = result.userMapping
+    
+    // Format display name: use given_name family_name from Cognito if available
+    val displayName = userMapping?.displayName ?: matrixUser.displayName ?: matrixUser.userId.value
+    
+    // Format secondary text: @preferred_username | custom:specialty | custom:office_city
+    val secondaryText = buildString {
+        if (userMapping != null) {
+            // Use Cognito preferred_username if available, otherwise extract from Matrix ID
+            val preferredUsername = userMapping.cognitoUsername ?: extractUsernameFromMatrixId(matrixUser.userId.value)
+            append("@$preferredUsername")
+            
+            // Add specialty if available
+            userMapping.specialty?.let { specialty ->
+                if (specialty.isNotEmpty()) {
+                    append(" | $specialty")
+                }
+            }
+            
+            // Add office city if available
+            userMapping.officeCity?.let { city ->
+                if (city.isNotEmpty()) {
+                    append(" | $city")
+                }
+            }
+        } else {
+            // Fallback to Matrix ID if no Cognito data
+            append(matrixUser.userId.value)
+        }
     }
-    CheckableUserRow(
-        checked = isUserSelected,
+
+    ListItem(
         modifier = modifier,
-        data = data,
-        onCheckedChange = onCheckedChange,
+        onClick = { onSelectionChanged(!isSelected) },
+        headlineContent = {
+            Text(
+                text = displayName,
+                style = ElementTheme.typography.fontBodyLgRegular,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            Text(
+                text = secondaryText,
+                style = ElementTheme.typography.fontBodyMdRegular,
+                color = MaterialTheme.colorScheme.secondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        leadingContent = ListItemContent.Custom {
+            Avatar(
+                avatarData = AvatarData(
+                    id = matrixUser.userId.value,
+                    name = displayName,
+                    url = matrixUser.avatarUrl,
+                    size = AvatarSize.UserListItem,
+                ),
+                avatarType = AvatarType.User,
+                modifier = Modifier.clip(CircleShape),
+            )
+        },
+        trailingContent = ListItemContent.Checkbox(
+            checked = isSelected,
+            enabled = true,
+        ),
     )
 }
 
-@Preview
+private fun extractUsernameFromMatrixId(matrixId: String): String {
+    // Extract username from @username:domain format
+    return matrixId.removePrefix("@").substringBefore(":")
+}
+
+@PreviewsDayNight
 @Composable
-internal fun SearchMultipleUsersResultItemPreview() = ElementThemedPreview {
-    Column {
-        SearchMultipleUsersResultItem(
-            searchResult = UserSearchResult(
-                aMatrixUser(),
-                isUnresolved = false
+internal fun SearchMultipleUsersResultItemPreview() = ElementPreview {
+    SearchMultipleUsersResultItem(
+        result = UserSearchResult(
+            matrixUser = MatrixUser(
+                userId = UserId("@racexcars:signout.io"),
+                displayName = "Race X Cars",
+                avatarUrl = null
             ),
-            isUserSelected = false,
-            onCheckedChange = {}
-        )
-        HorizontalDivider()
-        SearchMultipleUsersResultItem(
-            searchResult = UserSearchResult(
-                aMatrixUser(),
-                isUnresolved = false
-            ),
-            isUserSelected = true,
-            onCheckedChange = {}
-        )
-        HorizontalDivider()
-        SearchMultipleUsersResultItem(
-            searchResult = UserSearchResult(
-                aMatrixUser(),
-                isUnresolved = true
-            ),
-            isUserSelected = false,
-            onCheckedChange = {}
-        )
-        HorizontalDivider()
-        SearchMultipleUsersResultItem(
-            searchResult = UserSearchResult(
-                aMatrixUser(),
-                isUnresolved = true
-            ),
-            isUserSelected = true,
-            onCheckedChange = {}
-        )
-    }
+            userMapping = UserMapping(
+                matrixUserId = "@racexcars:signout.io",
+                matrixUsername = "racexcars",
+                cognitoUsername = "racexcars",
+                displayName = "Race X Cars",
+                firstName = "Race",
+                lastName = "Cars",
+                email = "racexcars@example.com",
+                specialty = "Automotive Engineering",
+                officeCity = "Detroit",
+                avatarUrl = null
+            )
+        ),
+        isSelected = false,
+        onSelectionChanged = {},
+    )
 }

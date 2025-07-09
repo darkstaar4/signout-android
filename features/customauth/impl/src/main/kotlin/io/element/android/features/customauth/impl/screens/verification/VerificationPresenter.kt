@@ -12,181 +12,149 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
 import io.element.android.features.customauth.impl.auth.CognitoAuthService
 import io.element.android.features.customauth.impl.auth.MatrixIntegrationService
 import io.element.android.libraries.architecture.Presenter
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
-class VerificationPresenter @AssistedInject constructor(
-    @Assisted private val params: Params,
-    private val cognitoAuthService: CognitoAuthService,
-    private val matrixIntegrationService: MatrixIntegrationService,
-) : Presenter<VerificationState> {
-    
-    @Composable
-    override fun present(): VerificationState {
-        val coroutineScope = rememberCoroutineScope()
+class VerificationPresenter
+    @Inject
+    constructor(
+        private val cognitoAuthService: CognitoAuthService,
+        private val matrixIntegrationService: MatrixIntegrationService,
+    ) : Presenter<VerificationState> {
         
-        // Use parameters passed from navigation
-        val username = params.username
-        val email = params.email
-        val password = params.password
-        var verificationCode by remember { mutableStateOf("") }
-        var isLoading by remember { mutableStateOf(false) }
-        var isResending by remember { mutableStateOf(false) }
-        var errorMessage by remember { mutableStateOf<String?>(null) }
-        var isVerificationSuccessful by remember { mutableStateOf(false) }
-        var isMatrixAccountCreated by remember { mutableStateOf(false) }
-        
-        fun handleEvents(event: VerificationEvents) {
-            when (event) {
-                is VerificationEvents.SetVerificationCode -> {
-                    verificationCode = event.code
-                    errorMessage = null
-                }
-                VerificationEvents.Submit -> {
-                    if (verificationCode.length == 6) {
+        @Composable
+        fun present(
+            username: String,
+            email: String,
+            password: String
+        ): VerificationState {
+            var verificationCode by rememberSaveable { mutableStateOf("") }
+            var isLoading by remember { mutableStateOf(false) }
+            var isResending by remember { mutableStateOf(false) }
+            var errorMessage by remember { mutableStateOf<String?>(null) }
+            var isVerificationSuccessful by remember { mutableStateOf(false) }
+            var isMatrixAccountCreated by remember { mutableStateOf(false) }
+
+            val coroutineScope = rememberCoroutineScope()
+
+            val canSubmit = verificationCode.isNotEmpty() && !isLoading
+
+            fun handleEvents(event: VerificationEvents) {
+                when (event) {
+                    is VerificationEvents.SetVerificationCode -> {
+                        verificationCode = event.code
+                        errorMessage = null
+                    }
+                    VerificationEvents.Submit -> {
+                        if (canSubmit) {
+                            coroutineScope.launch {
+                                isLoading = true
+                                errorMessage = null
+
+                                try {
+                                    val result = cognitoAuthService.confirmSignUp(username, verificationCode.trim())
+                                    if (result.isSuccess) {
+                                        Timber.d("Email verification successful for user: $username")
+                                        
+                                        // Create Matrix account
+                                        val updateResult = cognitoAuthService.updateMatrixCredentials(
+                                            username = username,
+                                            matrixUserId = "@${username}:signout.io",
+                                            matrixUsername = username,
+                                            matrixPassword = password
+                                        )
+                                        
+                                        if (updateResult.isSuccess) {
+                                            Timber.d("Matrix credentials stored in Cognito successfully")
+                                            
+                                            // IMPORTANT: Login the user to establish Cognito session
+                                            // This ensures the profile screen shows the correct user's data
+                                            try {
+                                                Timber.d("Logging in new user to establish Cognito session: $email")
+                                                val loginResult = cognitoAuthService.login(email, password, matrixIntegrationService)
+                                                if (loginResult.isSuccess) {
+                                                    Timber.d("Auto-login successful after verification")
+                                                    
+                                                    // User mapping will be populated after Matrix session is established
+                                                    Timber.d("Matrix session will be established, user mapping will be populated")
+                                                    
+                                                    isMatrixAccountCreated = true
+                                                } else {
+                                                    Timber.w("Auto-login failed after verification: ${loginResult.error}")
+                                                    isMatrixAccountCreated = true
+                                                }
+                                            } catch (loginException: Exception) {
+                                                Timber.w(loginException, "Failed to auto-login after verification")
+                                                isMatrixAccountCreated = true
+                                            }
+                                        } else {
+                                            Timber.w("Failed to store Matrix credentials in Cognito: ${updateResult.error}")
+                                        }
+                                        
+                                        isVerificationSuccessful = true
+                                    } else {
+                                        errorMessage = result.error ?: "Verification failed. Please try again."
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = e.message ?: "An unexpected error occurred."
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    }
+                    VerificationEvents.ClearError -> {
+                        errorMessage = null
+                    }
+                    VerificationEvents.ResendCode -> {
                         coroutineScope.launch {
-                            isLoading = true
+                            isResending = true
                             errorMessage = null
                             
                             try {
-                                Timber.d("Starting email verification for user: $email")
-                                
-                                // Verify the code with Cognito (use email as Cognito username)
-                                val verifyResult = cognitoAuthService.confirmSignUp(email, verificationCode)
-                                
-                                if (verifyResult.isSuccess) {
-                                    Timber.d("Email verification successful for user: $email")
-                                    
-                                    // Email verification successful - show success state
-                                    isVerificationSuccessful = true
-                                    
-                                    // Try to create Matrix account in background
-                                    Timber.d("Starting Matrix account creation for username: $username")
-                                    
-                                    try {
-                                        val matrixPassword = matrixIntegrationService.generateMatrixPassword()
-                                        val matrixUsername = matrixIntegrationService.formatMatrixUsername(username)
-                                        
-                                        Timber.d("Generated Matrix credentials - username: $matrixUsername, password length: ${matrixPassword.length}")
-                                        
-                                        // Create Matrix account
-                                        val matrixResult = matrixIntegrationService.createMatrixAccount(
-                                            username = matrixUsername,
-                                            password = matrixPassword,
-                                            displayName = username
-                                        )
-                                        
-                                        if (matrixResult.isSuccess) {
-                                            val matrixAccount = matrixResult.getOrThrow()
-                                            Timber.d("Matrix account created successfully: ${matrixAccount.matrixUserId}")
-                                            
-                                            // Update Cognito with Matrix credentials
-                                            val updateResult = cognitoAuthService.updateMatrixCredentials(
-                                                username = email,
-                                                matrixUserId = matrixAccount.matrixUserId,
-                                                matrixUsername = matrixAccount.matrixUsername,
-                                                matrixPassword = matrixAccount.matrixPassword
-                                            )
-                                            
-                                            if (updateResult.isSuccess) {
-                                                Timber.d("Matrix credentials stored in Cognito successfully")
-                                                
-                                                // IMPORTANT: Login the user to establish Cognito session
-                                                // This ensures the profile screen shows the correct user's data
-                                                try {
-                                                    Timber.d("Logging in new user to establish Cognito session: $email")
-                                                    val loginResult = cognitoAuthService.login(email, password, matrixIntegrationService)
-                                                    if (loginResult.isSuccess) {
-                                                        Timber.d("Auto-login successful after verification")
-                                                        isMatrixAccountCreated = true
-                                                    } else {
-                                                        Timber.w("Auto-login failed after verification: ${loginResult.error}")
-                                                        isMatrixAccountCreated = true
-                                                    }
-                                                } catch (loginException: Exception) {
-                                                    Timber.w(loginException, "Failed to auto-login after verification")
-                                                    isMatrixAccountCreated = true
-                                                }
-                                            } else {
-                                                Timber.w("Failed to store Matrix credentials in Cognito: ${updateResult.error}")
-                                            }
-                                        } else {
-                                            val error = matrixResult.exceptionOrNull()
-                                            Timber.w("Matrix account creation failed: ${error?.message}")
-                                            Timber.w("Matrix error details: ${error?.cause?.message}")
-                                        }
-                                    } catch (matrixException: Exception) {
-                                        Timber.w(matrixException, "Matrix account creation failed with exception")
-                                    }
+                                val result = cognitoAuthService.resendConfirmationCode(username)
+                                if (result.isSuccess) {
+                                    Timber.d("Confirmation code resent successfully")
                                 } else {
-                                    Timber.w("Email verification failed: ${verifyResult.error}")
-                                    errorMessage = verifyResult.error ?: "Verification failed"
+                                    errorMessage = result.error ?: "Failed to resend code. Please try again."
                                 }
                             } catch (e: Exception) {
-                                Timber.e(e, "Verification process failed")
-                                errorMessage = "Verification failed: ${e.message}"
+                                errorMessage = e.message ?: "Failed to resend code."
                             } finally {
-                                isLoading = false
+                                isResending = false
                             }
                         }
                     }
-                }
-                VerificationEvents.ResendCode -> {
-                    coroutineScope.launch {
-                        isResending = true
-                        errorMessage = null
-                        
-                        try {
-                            val result = cognitoAuthService.resendConfirmationCode(email)
-                            if (!result.isSuccess) {
-                                errorMessage = result.error ?: "Failed to resend code. Please try again."
-                            }
-                        } catch (e: Exception) {
-                            errorMessage = "Failed to resend code: ${e.message}"
-                        } finally {
-                            isResending = false
-                        }
+                    VerificationEvents.Continue -> {
+                        // This event is handled by the parent node
+                        Timber.d("Continue button pressed - verification complete")
                     }
-                }
-                VerificationEvents.ClearError -> {
-                    errorMessage = null
-                }
-                VerificationEvents.Continue -> {
-                    // This event will be handled by the parent node
-                    Timber.d("Continue button pressed - verification complete")
                 }
             }
+
+            return VerificationState(
+                username = username,
+                email = email,
+                verificationCode = verificationCode,
+                isLoading = isLoading,
+                isResending = isResending,
+                errorMessage = errorMessage,
+                canSubmit = canSubmit,
+                isVerificationSuccessful = isVerificationSuccessful,
+                isMatrixAccountCreated = isMatrixAccountCreated,
+                eventSink = ::handleEvents,
+            )
         }
         
-        return VerificationState(
-            username = username,
-            email = email,
-            verificationCode = verificationCode,
-            isLoading = isLoading,
-            isResending = isResending,
-            errorMessage = errorMessage,
-            canSubmit = verificationCode.length == 6,
-            isVerificationSuccessful = isVerificationSuccessful,
-            isMatrixAccountCreated = isMatrixAccountCreated,
-            eventSink = ::handleEvents
-        )
-    }
-    
-    data class Params(
-        val username: String,
-        val email: String,
-        val password: String
-    )
-    
-    @AssistedFactory
-    interface Factory {
-        fun create(params: Params): VerificationPresenter
-    }
-} 
+        @Composable
+        override fun present(): VerificationState {
+            // This should not be called directly - use the other present method
+            throw IllegalStateException("Use present(username, email, password) instead")
+        }
+    } 

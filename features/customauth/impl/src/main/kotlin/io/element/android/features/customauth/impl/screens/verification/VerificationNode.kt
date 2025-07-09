@@ -27,7 +27,7 @@ class VerificationNode
     constructor(
         @Assisted buildContext: BuildContext,
         @Assisted plugins: List<Plugin>,
-        presenterFactory: VerificationPresenter.Factory,
+        private val presenter: VerificationPresenter,
     ) : Node(buildContext, plugins = plugins) {
         
         data class Inputs(
@@ -35,16 +35,7 @@ class VerificationNode
             val email: String,
             val password: String
         ) : NodeInputs
-        
-        private val inputs = inputs<Inputs>()
-        private val presenter = presenterFactory.create(
-            VerificationPresenter.Params(
-                username = inputs.username,
-                email = inputs.email,
-                password = inputs.password
-            )
-        )
-        
+
         interface Callback : Plugin {
             fun onNavigateToLogin()
             fun onVerificationSuccess()
@@ -52,7 +43,12 @@ class VerificationNode
 
         @Composable
         override fun View(modifier: Modifier) {
-            val state = presenter.present()
+            val inputs = inputs<Inputs>()
+            val state = presenter.present(
+                username = inputs.username,
+                email = inputs.email,
+                password = inputs.password
+            )
 
             VerificationScreen(
                 state = state,
@@ -65,9 +61,5 @@ class VerificationNode
                 },
                 modifier = modifier,
             )
-        }
-        
-        interface Factory {
-            fun create(params: VerificationPresenter.Params): VerificationPresenter
         }
     } 
