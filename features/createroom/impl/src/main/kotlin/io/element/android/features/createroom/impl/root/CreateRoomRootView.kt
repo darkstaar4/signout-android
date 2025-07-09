@@ -54,7 +54,6 @@ fun CreateRoomRootView(
     onNewRoomClick: () -> Unit,
     onOpenDM: (RoomId) -> Unit,
     onInviteFriendsClick: () -> Unit,
-    onJoinByAddressClick: () -> Unit,
     onRoomDirectorySearchClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -90,7 +89,6 @@ fun CreateRoomRootView(
                     state = state,
                     onNewRoomClick = onNewRoomClick,
                     onInvitePeopleClick = onInviteFriendsClick,
-                    onJoinByAddressClick = onJoinByAddressClick,
                     onRoomDirectorySearchClick = onRoomDirectorySearchClick,
                     onDmClick = onOpenDM,
                 )
@@ -151,7 +149,6 @@ private fun CreateRoomActionButtonsList(
     state: CreateRoomRootState,
     onNewRoomClick: () -> Unit,
     onInvitePeopleClick: () -> Unit,
-    onJoinByAddressClick: () -> Unit,
     onRoomDirectorySearchClick: () -> Unit,
     onDmClick: (RoomId) -> Unit,
 ) {
@@ -175,36 +172,9 @@ private fun CreateRoomActionButtonsList(
         item {
             CreateRoomActionButton(
                 iconRes = CompoundDrawables.ic_compound_share_android,
-                text = stringResource(id = CommonStrings.action_invite_friends_to_app, state.applicationName),
+                text = stringResource(id = CommonStrings.action_invite_friends_to_app),
                 onClick = onInvitePeopleClick,
             )
-        }
-        item {
-            CreateRoomActionButton(
-                iconRes = CompoundDrawables.ic_compound_room,
-                text = stringResource(R.string.screen_start_chat_join_room_by_address_action),
-                onClick = onJoinByAddressClick,
-            )
-        }
-        if (state.userListState.recentDirectRooms.isNotEmpty()) {
-            item {
-                ListSectionHeader(
-                    title = stringResource(id = CommonStrings.common_suggestions),
-                    hasDivider = false,
-                )
-            }
-            state.userListState.recentDirectRooms.forEach { recentDirectRoom ->
-                item {
-                    MatrixUserRow(
-                        modifier = Modifier.clickable(
-                            onClick = {
-                                onDmClick(recentDirectRoom.roomId)
-                            }
-                        ),
-                        matrixUser = recentDirectRoom.matrixUser,
-                    )
-                }
-            }
         }
     }
 }
@@ -246,7 +216,6 @@ internal fun CreateRoomRootViewPreview(@PreviewParameter(CreateRoomRootStateProv
             onCloseClick = {},
             onNewRoomClick = {},
             onOpenDM = {},
-            onJoinByAddressClick = {},
             onInviteFriendsClick = {},
             onRoomDirectorySearchClick = {},
         )

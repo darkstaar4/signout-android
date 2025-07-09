@@ -65,7 +65,6 @@ import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBan
 import io.element.android.features.messages.impl.timeline.FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS
 import io.element.android.features.messages.impl.timeline.TimelineEvents
 import io.element.android.features.messages.impl.timeline.TimelineView
-import io.element.android.features.messages.impl.timeline.components.CallMenuItem
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionBottomSheet
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionEvents
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryEvents
@@ -77,7 +76,6 @@ import io.element.android.features.messages.impl.voicemessages.composer.VoiceMes
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessagePermissionRationaleDialog
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageSendingFailedDialog
 import io.element.android.features.networkmonitor.api.ui.ConnectivityIndicatorView
-import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.libraries.androidutils.ui.hideKeyboard
 import io.element.android.libraries.designsystem.atomic.molecules.ComposerAlertMolecule
 import io.element.android.libraries.designsystem.components.ExpandableBottomSheetLayout
@@ -123,8 +121,8 @@ fun MessagesView(
     onLinkClick: (String, Boolean) -> Unit,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
-    onJoinCallClick: () -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
+    onJoinCallClick: () -> Unit,
     modifier: Modifier = Modifier,
     forceJumpToBottomVisibility: Boolean = false,
     knockRequestsBannerView: @Composable () -> Unit,
@@ -201,11 +199,9 @@ fun MessagesView(
                             roomAvatar = state.roomAvatar,
                             isTombstoned = state.isTombstoned,
                             heroes = state.heroes,
-                            roomCallState = state.roomCallState,
                             dmUserIdentityState = state.dmUserVerificationState,
                             onBackClick = { hidingKeyboard { onBackClick() } },
                             onRoomDetailsClick = { hidingKeyboard { onRoomDetailsClick() } },
-                            onJoinCallClick = onJoinCallClick,
                         )
                     }
                 },
@@ -244,8 +240,8 @@ fun MessagesView(
                                 state.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, targetEvent))
                             },
                             forceJumpToBottomVisibility = forceJumpToBottomVisibility,
-                            onJoinCallClick = onJoinCallClick,
                             onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
+                            onJoinCallClick = onJoinCallClick,
                             knockRequestsBannerView = knockRequestsBannerView,
                         )
 
@@ -357,10 +353,10 @@ private fun MessagesViewContent(
     onMessageLongClick: (TimelineItem.Event) -> Unit,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
-    onJoinCallClick: () -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     forceJumpToBottomVisibility: Boolean,
     onSwipeToReply: (TimelineItem.Event) -> Unit,
+    onJoinCallClick: () -> Unit,
     modifier: Modifier = Modifier,
     knockRequestsBannerView: @Composable () -> Unit,
 ) {
@@ -410,8 +406,8 @@ private fun MessagesViewContent(
                 onReactionLongClick = onReactionLongClick,
                 onMoreReactionsClick = onMoreReactionsClick,
                 onReadReceiptClick = onReadReceiptClick,
-                forceJumpToBottomVisibility = forceJumpToBottomVisibility,
                 onJoinCallClick = onJoinCallClick,
+                forceJumpToBottomVisibility = forceJumpToBottomVisibility,
                 nestedScrollConnection = scrollBehavior.nestedScrollConnection,
             )
             AnimatedVisibility(
@@ -483,10 +479,8 @@ private fun MessagesViewTopBar(
     roomAvatar: AvatarData,
     isTombstoned: Boolean,
     heroes: ImmutableList<AvatarData>,
-    roomCallState: RoomCallState,
     dmUserIdentityState: IdentityState?,
     onRoomDetailsClick: () -> Unit,
-    onJoinCallClick: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     TopAppBar(
@@ -529,13 +523,6 @@ private fun MessagesViewTopBar(
                     else -> Unit
                 }
             }
-        },
-        actions = {
-            CallMenuItem(
-                roomCallState = roomCallState,
-                onJoinCallClick = onJoinCallClick,
-            )
-            Spacer(Modifier.width(8.dp))
         },
         windowInsets = WindowInsets(0.dp)
     )
@@ -623,8 +610,8 @@ internal fun MessagesViewPreview(@PreviewParameter(MessagesStateProvider::class)
         onLinkClick = { _, _ -> },
         onSendLocationClick = {},
         onCreatePollClick = {},
-        onJoinCallClick = {},
         onViewAllPinnedMessagesClick = { },
+        onJoinCallClick = {},
         forceJumpToBottomVisibility = true,
         knockRequestsBannerView = {},
     )

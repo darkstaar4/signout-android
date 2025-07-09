@@ -112,7 +112,6 @@ class MessagesNode @AssistedInject constructor(
         fun onSendLocationClick()
         fun onCreatePollClick()
         fun onEditPollClick(eventId: EventId)
-        fun onJoinCallClick(roomId: RoomId)
         fun onViewAllPinnedEvents()
         fun onViewKnockRequests()
     }
@@ -234,10 +233,6 @@ class MessagesNode @AssistedInject constructor(
         callbacks.forEach { it.onCreatePollClick() }
     }
 
-    private fun onJoinCallClick() {
-        callbacks.forEach { it.onJoinCallClick(room.roomId) }
-    }
-
     private fun onViewKnockRequestsClick() {
         callbacks.forEach { it.onViewKnockRequests() }
     }
@@ -269,8 +264,8 @@ class MessagesNode @AssistedInject constructor(
                 onLinkClick = { url, customTab -> onLinkClick(activity, isDark, url, state.timelineState.eventSink, customTab) },
                 onSendLocationClick = this::onSendLocationClick,
                 onCreatePollClick = this::onCreatePollClick,
-                onJoinCallClick = this::onJoinCallClick,
                 onViewAllPinnedMessagesClick = this::onViewAllPinnedMessagesClick,
+                onJoinCallClick = { /* No-op for now, functionality preserved for future implementation */ },
                 modifier = modifier,
                 knockRequestsBannerView = {
                     knockRequestsBannerRenderer.View(

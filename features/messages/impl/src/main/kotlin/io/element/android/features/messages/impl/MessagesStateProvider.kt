@@ -34,9 +34,6 @@ import io.element.android.features.messages.impl.timeline.protection.aTimelinePr
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageComposerState
 import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessageComposerState
 import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessagePreviewState
-import io.element.android.features.roomcall.api.RoomCallState
-import io.element.android.features.roomcall.api.aStandByCallState
-import io.element.android.features.roomcall.api.anOngoingCallState
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncData
@@ -65,17 +62,11 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
                 voiceMessageComposerState = aVoiceMessageComposerState(showPermissionRationaleDialog = true),
             ),
             aMessagesState(
-                roomCallState = anOngoingCallState(),
-            ),
-            aMessagesState(
                 enableVoiceMessages = true,
                 voiceMessageComposerState = aVoiceMessageComposerState(
                     voiceMessageState = aVoiceMessagePreviewState(),
                     showSendFailureDialog = true
                 ),
-            ),
-            aMessagesState(
-                roomCallState = aStandByCallState(canStartCall = false),
             ),
             aMessagesState(
                 pinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(
@@ -114,7 +105,6 @@ fun aMessagesState(
     hasNetworkConnection: Boolean = true,
     showReinvitePrompt: Boolean = false,
     enableVoiceMessages: Boolean = true,
-    roomCallState: RoomCallState = aStandByCallState(),
     pinnedMessagesBannerState: PinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(),
     dmUserVerificationState: IdentityState? = null,
     roomMemberModerationState: RoomMemberModerationState = aRoomMemberModerationState(),
@@ -142,7 +132,6 @@ fun aMessagesState(
     showReinvitePrompt = showReinvitePrompt,
     enableTextFormatting = true,
     enableVoiceMessages = enableVoiceMessages,
-    roomCallState = roomCallState,
     appName = "Element",
     pinnedMessagesBannerState = pinnedMessagesBannerState,
     dmUserVerificationState = dmUserVerificationState,

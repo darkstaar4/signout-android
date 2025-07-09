@@ -105,7 +105,6 @@ class MessagesPresenter @AssistedInject constructor(
     private val reactionSummaryPresenter: Presenter<ReactionSummaryState>,
     private val readReceiptBottomSheetPresenter: Presenter<ReadReceiptBottomSheetState>,
     private val pinnedMessagesBannerPresenter: Presenter<PinnedMessagesBannerState>,
-    private val roomCallStatePresenter: Presenter<RoomCallState>,
     private val roomMemberModerationPresenter: Presenter<RoomMemberModerationState>,
     private val syncService: SyncService,
     private val snackbarDispatcher: SnackbarDispatcher,
@@ -146,7 +145,6 @@ class MessagesPresenter @AssistedInject constructor(
         val reactionSummaryState = reactionSummaryPresenter.present()
         val readReceiptBottomSheetState = readReceiptBottomSheetPresenter.present()
         val pinnedMessagesBannerState = pinnedMessagesBannerPresenter.present()
-        val roomCallState = roomCallStatePresenter.present()
         val roomMemberModerationState = roomMemberModerationPresenter.present()
         val syncUpdateFlow = room.syncUpdateFlow.collectAsState()
 
@@ -263,7 +261,6 @@ class MessagesPresenter @AssistedInject constructor(
             enableTextFormatting = MessageComposerConfig.ENABLE_RICH_TEXT_EDITING,
             enableVoiceMessages = enableVoiceMessages,
             appName = buildMeta.applicationName,
-            roomCallState = roomCallState,
             pinnedMessagesBannerState = pinnedMessagesBannerState,
             dmUserVerificationState = dmUserVerificationState,
             roomMemberModerationState = roomMemberModerationState,

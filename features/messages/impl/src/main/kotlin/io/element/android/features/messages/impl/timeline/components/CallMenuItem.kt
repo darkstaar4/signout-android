@@ -37,25 +37,8 @@ internal fun CallMenuItem(
     onJoinCallClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (roomCallState) {
-        RoomCallState.Unavailable -> {
-            Box(modifier)
-        }
-        is RoomCallState.StandBy -> {
-            StandByCallMenuItem(
-                roomCallState = roomCallState,
-                onJoinCallClick = onJoinCallClick,
-                modifier = modifier,
-            )
-        }
-        is RoomCallState.OnGoing -> {
-            OnGoingCallMenuItem(
-                roomCallState = roomCallState,
-                onJoinCallClick = onJoinCallClick,
-                modifier = modifier,
-            )
-        }
-    }
+    // Hide the call icon/button while preserving functionality for future implementation
+    Box(modifier)
 }
 
 @Composable

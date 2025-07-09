@@ -82,7 +82,7 @@ class MatrixUserExtensionsTest {
                 matrixUser.getFullName()
             }
         }.test {
-            assertThat(awaitItem()).isEqualTo("displayName (@alice:server.org)")
+            assertThat(awaitItem()).isEqualTo("displayName (@alice)")
         }
     }
 

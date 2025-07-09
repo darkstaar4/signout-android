@@ -51,7 +51,9 @@ fun MatrixUser.getFullName(): String {
         if (name.isNullOrBlank()) {
             userId.value
         } else {
-            stringResource(CommonStrings.common_name_and_id, name, userId.value)
+            // Strip the domain from the user ID to show only the username part
+            val usernameOnly = userId.value.substringBefore(":")
+            stringResource(CommonStrings.common_name_and_id, name, usernameOnly)
         }
     }
 }

@@ -19,7 +19,6 @@ import io.element.android.features.messages.impl.timeline.components.reactionsum
 import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetState
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageComposerState
-import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
@@ -52,7 +51,6 @@ data class MessagesState(
     val showReinvitePrompt: Boolean,
     val enableTextFormatting: Boolean,
     val enableVoiceMessages: Boolean,
-    val roomCallState: RoomCallState,
     val appName: String,
     val pinnedMessagesBannerState: PinnedMessagesBannerState,
     val dmUserVerificationState: IdentityState?,

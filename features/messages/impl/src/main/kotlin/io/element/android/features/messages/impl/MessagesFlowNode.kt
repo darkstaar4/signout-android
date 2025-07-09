@@ -24,8 +24,6 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.anvilannotations.ContributesNode
-import io.element.android.features.call.api.CallType
-import io.element.android.features.call.api.ElementCallEntryPoint
 import io.element.android.features.knockrequests.api.list.KnockRequestsListEntryPoint
 import io.element.android.features.location.api.Location
 import io.element.android.features.location.api.LocationService
@@ -97,7 +95,6 @@ class MessagesFlowNode @AssistedInject constructor(
     private val sendLocationEntryPoint: SendLocationEntryPoint,
     private val showLocationEntryPoint: ShowLocationEntryPoint,
     private val createPollEntryPoint: CreatePollEntryPoint,
-    private val elementCallEntryPoint: ElementCallEntryPoint,
     private val mediaViewerEntryPoint: MediaViewerEntryPoint,
     private val analyticsService: AnalyticsService,
     private val locationService: LocationService,
@@ -252,15 +249,6 @@ class MessagesFlowNode @AssistedInject constructor(
 
                     override fun onEditPollClick(eventId: EventId) {
                         backstack.push(NavTarget.EditPoll(eventId))
-                    }
-
-                    override fun onJoinCallClick(roomId: RoomId) {
-                        val callType = CallType.RoomCall(
-                            sessionId = matrixClient.sessionId,
-                            roomId = roomId,
-                        )
-                        analyticsService.captureInteraction(Interaction.Name.MobileRoomCallButton)
-                        elementCallEntryPoint.startCall(callType)
                     }
 
                     override fun onViewAllPinnedEvents() {

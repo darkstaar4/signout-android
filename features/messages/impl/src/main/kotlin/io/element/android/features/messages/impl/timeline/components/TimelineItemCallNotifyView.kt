@@ -76,12 +76,13 @@ internal fun TimelineItemCallNotifyView(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    modifier = Modifier.size(20.sp.toDp()),
-                    imageVector = CompoundIcons.VideoCallSolid(),
-                    contentDescription = null,
-                    tint = ElementTheme.colors.iconSecondary,
-                )
+                // Hide video call icon while preserving functionality for future implementation
+                // Icon(
+                //     modifier = Modifier.size(20.sp.toDp()),
+                //     imageVector = CompoundIcons.VideoCallSolid(),
+                //     contentDescription = null,
+                //     tint = ElementTheme.colors.iconSecondary,
+                // )
                 Text(
                     text = stringResource(CommonStrings.common_call_started),
                     style = ElementTheme.typography.fontBodyMdRegular,

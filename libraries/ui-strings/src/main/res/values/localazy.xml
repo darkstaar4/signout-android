@@ -85,7 +85,7 @@
   <string name="action_ignore">"Ignore"</string>
   <string name="action_invite">"Invite"</string>
   <string name="action_invite_friends">"Invite people"</string>
-  <string name="action_invite_friends_to_app">"Invite people to %1$s"</string>
+  <string name="action_invite_friends_to_app">"Invite people to SignOut"</string>
   <string name="action_invite_people_to_app">"Invite people to %1$s"</string>
   <string name="action_invites_list">"Invites"</string>
   <string name="action_join">"Join"</string>
@@ -360,7 +360,7 @@ Are you sure you want to continue?"</string>
   <string name="event_shield_reason_unsigned_device">"Encrypted by a device not verified by its owner."</string>
   <string name="event_shield_reason_unverified_identity">"Encrypted by an unverified user."</string>
   <string name="invite_friends_rich_title">"🔐️ Join me on %1$s"</string>
-  <string name="invite_friends_text">"Hey, talk to me on %1$s: %2$s"</string>
+  <string name="invite_friends_text">"Hey, chat with me on SignOut: https://www.signout.com/download."</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="preference_rageshake">"Rageshake to report bug"</string>
   <string name="screen_create_poll_option_accessibility_label">"%1$s: %2$s"</string>
