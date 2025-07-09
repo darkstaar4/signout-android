@@ -870,13 +870,52 @@ class CognitoAuthService
                     return@suspendCoroutine
                 }
 
-                currentUser.getDetailsInBackground(object : GetDetailsHandler {
-                    override fun onSuccess(userDetails: CognitoUserDetails?) {
-                        continuation.resume(userDetails)
-                    }
+                // First, try to get a valid session
+                currentUser.getSessionInBackground(object : AuthenticationHandler {
+                    override fun onSuccess(
+                        userSession: CognitoUserSession?,
+                        newDevice: CognitoDevice?
+                    ) {
+                        Timber.d("getCurrentUserDetails: Session is valid, getting user details")
+                        
+                        // Now get user details with a valid session
+                        currentUser.getDetailsInBackground(object : GetDetailsHandler {
+                            override fun onSuccess(userDetails: CognitoUserDetails?) {
+                                Timber.d("getCurrentUserDetails: Got user details successfully")
+                                continuation.resume(userDetails)
+                            }
 
+                            override fun onFailure(exception: Exception?) {
+                                Timber.e(exception, "getCurrentUserDetails: Failed to get user details even with valid session")
+                                continuation.resume(null)
+                            }
+                        })
+                    }
+                    
+                    override fun getAuthenticationDetails(
+                        authenticationContinuation: AuthenticationContinuation,
+                        userId: String
+                    ) {
+                        Timber.d("getCurrentUserDetails: Authentication required for user: $userId")
+                        // Don't automatically provide credentials - session expired
+                        continuation.resume(null)
+                    }
+                    
+                    override fun getMFACode(mfaContinuation: MultiFactorAuthenticationContinuation) {
+                        Timber.d("getCurrentUserDetails: MFA required")
+                        // Don't handle MFA automatically
+                        continuation.resume(null)
+                    }
+                    
+                    override fun authenticationChallenge(challengeContinuation: ChallengeContinuation) {
+                        Timber.d("getCurrentUserDetails: Authentication challenge required")
+                        // Don't handle challenges automatically
+                        continuation.resume(null)
+                    }
+                    
                     override fun onFailure(exception: Exception?) {
-                        Timber.e(exception, "Failed to get user details")
+                        Timber.w("getCurrentUserDetails: Failed to get session: ${exception?.message}")
+                        // Session is invalid/expired
                         continuation.resume(null)
                     }
                 })
@@ -898,20 +937,58 @@ class CognitoAuthService
                     userAttributes.addAttribute(key, value)
                 }
 
-                currentUser.updateAttributesInBackground(
-                    userAttributes,
-                    object : UpdateAttributesHandler {
-                        override fun onSuccess(attributesVerificationList: MutableList<CognitoUserCodeDeliveryDetails>?) {
-                            Timber.d("User attributes updated successfully")
-                            continuation.resume(true)
-                        }
+                // First, try to get a valid session
+                currentUser.getSessionInBackground(object : AuthenticationHandler {
+                    override fun onSuccess(
+                        userSession: CognitoUserSession?,
+                        newDevice: CognitoDevice?
+                    ) {
+                        Timber.d("updateUserAttributes: Session is valid, updating attributes")
+                        
+                        // Now update attributes with a valid session
+                        currentUser.updateAttributesInBackground(
+                            userAttributes,
+                            object : UpdateAttributesHandler {
+                                override fun onSuccess(attributesVerificationList: MutableList<CognitoUserCodeDeliveryDetails>?) {
+                                    Timber.d("updateUserAttributes: User attributes updated successfully")
+                                    continuation.resume(true)
+                                }
 
-                        override fun onFailure(exception: Exception?) {
-                            Timber.e(exception, "Failed to update user attributes")
-                            continuation.resume(false)
-                        }
+                                override fun onFailure(exception: Exception?) {
+                                    Timber.e(exception, "updateUserAttributes: Failed to update user attributes")
+                                    continuation.resume(false)
+                                }
+                            }
+                        )
                     }
-                )
+                    
+                    override fun getAuthenticationDetails(
+                        authenticationContinuation: AuthenticationContinuation,
+                        userId: String
+                    ) {
+                        Timber.d("updateUserAttributes: Authentication required for user: $userId")
+                        // Don't automatically provide credentials - session expired
+                        continuation.resume(false)
+                    }
+                    
+                    override fun getMFACode(mfaContinuation: MultiFactorAuthenticationContinuation) {
+                        Timber.d("updateUserAttributes: MFA required")
+                        // Don't handle MFA automatically
+                        continuation.resume(false)
+                    }
+                    
+                    override fun authenticationChallenge(challengeContinuation: ChallengeContinuation) {
+                        Timber.d("updateUserAttributes: Authentication challenge required")
+                        // Don't handle challenges automatically
+                        continuation.resume(false)
+                    }
+                    
+                    override fun onFailure(exception: Exception?) {
+                        Timber.w("updateUserAttributes: Failed to get session: ${exception?.message}")
+                        // Session is invalid/expired
+                        continuation.resume(false)
+                    }
+                })
             }
         }
     }

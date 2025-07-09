@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -181,6 +182,44 @@ private fun CognitoUserInfo(
         } else if (cognitoInfo != null) {
             // Show the existing profile information
             CognitoInfoDisplay(cognitoInfo!!)
+        } else if (!isLoading) {
+            // Session expired or no authentication - show login option
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = ElementTheme.colors.bgSubtleSecondary
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Profile",
+                        tint = ElementTheme.colors.iconSecondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Profile Authentication Required",
+                        style = ElementTheme.typography.fontBodyLgMedium,
+                        color = ElementTheme.colors.textPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Your profile session has expired. Please login to view and edit your profile information.",
+                        style = ElementTheme.typography.fontBodyMdRegular,
+                        color = ElementTheme.colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { showLoginDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Login to Profile")
+                    }
+                }
+            }
         }
     }
 
@@ -464,84 +503,167 @@ private suspend fun getCognitoUserInfoWithSessionCheck(
                 val latch = CountDownLatch(1)
                 var result: CognitoUserInfoResult? = null
                 
-                currentUser.getDetailsInBackground(object : GetDetailsHandler {
-                    override fun onSuccess(userDetails: com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserDetails?) {
-                        Timber.d("getCognitoUserInfoWithSessionCheck: Got user details successfully")
-                        val attributes = userDetails?.attributes?.attributes
-                        Timber.d("getCognitoUserInfoWithSessionCheck: Attributes: $attributes")
+                // First, try to get a valid session
+                currentUser.getSessionInBackground(object : com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler {
+                    override fun onSuccess(
+                        userSession: com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession?,
+                        newDevice: com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice?
+                    ) {
+                        Timber.d("getCognitoUserInfoWithSessionCheck: Session is valid, getting user details")
                         
-                        // Check if this Cognito user matches the Matrix user
-                        val cognitoMatrixUsername = attributes?.get("custom:matrix_username")
-                        val expectedMatrixUsername = matrixUserId.substringAfter("@").substringBefore(":")
-                        
-                        val hasSessionMismatch = cognitoMatrixUsername != expectedMatrixUsername
-                        
-                        if (hasSessionMismatch) {
-                            Timber.w("getCognitoUserInfoWithSessionCheck: Session mismatch detected!")
-                            Timber.w("getCognitoUserInfoWithSessionCheck: Cognito matrix_username: $cognitoMatrixUsername")
-                            Timber.w("getCognitoUserInfoWithSessionCheck: Expected matrix_username: $expectedMatrixUsername")
-                            
-                            // Try to fix the session mismatch by logging out the wrong user
-                            try {
-                                Timber.d("getCognitoUserInfoWithSessionCheck: Attempting to fix session mismatch...")
-                                currentUser.signOut()
-                                Timber.d("getCognitoUserInfoWithSessionCheck: Successfully logged out wrong user")
-                            } catch (e: Exception) {
-                                Timber.w("getCognitoUserInfoWithSessionCheck: Failed to logout wrong user: ${e.message}")
+                        // Now get user details with a valid session
+                        currentUser.getDetailsInBackground(object : GetDetailsHandler {
+                            override fun onSuccess(userDetails: com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserDetails?) {
+                                Timber.d("getCognitoUserInfoWithSessionCheck: Got user details successfully")
+                                val attributes = userDetails?.attributes?.attributes
+                                Timber.d("getCognitoUserInfoWithSessionCheck: Attributes: $attributes")
+                                
+                                // Check if this Cognito user matches the Matrix user
+                                val cognitoMatrixUsername = attributes?.get("custom:matrix_username")
+                                val expectedMatrixUsername = matrixUserId.substringAfter("@").substringBefore(":")
+                                
+                                val hasSessionMismatch = cognitoMatrixUsername != expectedMatrixUsername
+                                
+                                if (hasSessionMismatch) {
+                                    Timber.w("getCognitoUserInfoWithSessionCheck: Session mismatch detected!")
+                                    Timber.w("getCognitoUserInfoWithSessionCheck: Cognito matrix_username: $cognitoMatrixUsername")
+                                    Timber.w("getCognitoUserInfoWithSessionCheck: Expected matrix_username: $expectedMatrixUsername")
+                                    
+                                    // Try to fix the session mismatch by updating the matrix_username attribute
+                                    // instead of immediately logging out the user
+                                    if (cognitoMatrixUsername == null || cognitoMatrixUsername.isEmpty()) {
+                                        Timber.d("getCognitoUserInfoWithSessionCheck: Attempting to fix session mismatch by updating matrix_username...")
+                                        try {
+                                            val updateAttributes = com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserAttributes()
+                                            updateAttributes.addAttribute("custom:matrix_username", expectedMatrixUsername)
+                                            
+                                            currentUser.updateAttributesInBackground(updateAttributes, object : com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.UpdateAttributesHandler {
+                                                override fun onSuccess(attributesVerificationList: MutableList<com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserCodeDeliveryDetails>?) {
+                                                    Timber.d("getCognitoUserInfoWithSessionCheck: Successfully updated matrix_username to $expectedMatrixUsername")
+                                                }
+                                                
+                                                override fun onFailure(exception: Exception?) {
+                                                    Timber.w("getCognitoUserInfoWithSessionCheck: Failed to update matrix_username: ${exception?.message}")
+                                                }
+                                            })
+                                            
+                                            // Return user data since we've attempted to fix the mismatch
+                                            val cognitoData = CognitoUserData(
+                                                fullName = buildString {
+                                                    val firstName = attributes?.get("given_name") ?: ""
+                                                    val lastName = attributes?.get("family_name") ?: ""
+                                                    if (firstName.isNotEmpty() || lastName.isNotEmpty()) {
+                                                        append("$firstName $lastName".trim())
+                                                    }
+                                                },
+                                                professionalTitle = attributes?.get("custom:professional_title") ?: "",
+                                                specialty = attributes?.get("custom:specialty") ?: "",
+                                                officeCity = attributes?.get("custom:office_city") ?: ""
+                                            )
+                                            
+                                            result = CognitoUserInfoResult(
+                                                cognitoData = cognitoData,
+                                                hasSessionMismatch = false  // Treat as fixed
+                                            )
+                                            
+                                        } catch (e: Exception) {
+                                            Timber.w("getCognitoUserInfoWithSessionCheck: Failed to update matrix_username: ${e.message}")
+                                            result = CognitoUserInfoResult(
+                                                cognitoData = null,
+                                                hasSessionMismatch = true
+                                            )
+                                        }
+                                    } else {
+                                        // There's a different matrix_username, this is a real mismatch
+                                        Timber.w("getCognitoUserInfoWithSessionCheck: Real session mismatch - different users")
+                                        try {
+                                            currentUser.signOut()
+                                            Timber.d("getCognitoUserInfoWithSessionCheck: Successfully logged out wrong user")
+                                        } catch (e: Exception) {
+                                            Timber.w("getCognitoUserInfoWithSessionCheck: Failed to logout wrong user: ${e.message}")
+                                        }
+                                        
+                                        result = CognitoUserInfoResult(
+                                            cognitoData = null,
+                                            hasSessionMismatch = true
+                                        )
+                                    }
+                                } else {
+                                    // Session is correct, return user data
+                                    val cognitoData = CognitoUserData(
+                                        fullName = buildString {
+                                            val firstName = attributes?.get("given_name") ?: ""
+                                            val lastName = attributes?.get("family_name") ?: ""
+                                            if (firstName.isNotEmpty() || lastName.isNotEmpty()) {
+                                                append("$firstName $lastName".trim())
+                                            }
+                                        },
+                                        professionalTitle = attributes?.get("custom:professional_title") ?: "",
+                                        specialty = attributes?.get("custom:specialty") ?: "",
+                                        officeCity = attributes?.get("custom:office_city") ?: ""
+                                    )
+                                    
+                                    result = CognitoUserInfoResult(
+                                        cognitoData = cognitoData,
+                                        hasSessionMismatch = false
+                                    )
+                                }
+                                
+                                Timber.d("getCognitoUserInfoWithSessionCheck: Created result: $result")
+                                latch.countDown()
                             }
                             
-                            result = CognitoUserInfoResult(
-                                cognitoData = null,
-                                hasSessionMismatch = true
-                            )
-                        } else {
-                            // Session is correct, return user data
-                            val cognitoData = CognitoUserData(
-                                fullName = buildString {
-                                    val firstName = attributes?.get("given_name") ?: ""
-                                    val lastName = attributes?.get("family_name") ?: ""
-                                    if (firstName.isNotEmpty() || lastName.isNotEmpty()) {
-                                        append("$firstName $lastName".trim())
-                                    }
-                                },
-                                professionalTitle = attributes?.get("custom:professional_title") ?: "",
-                                specialty = attributes?.get("custom:specialty") ?: "",
-                                officeCity = attributes?.get("custom:office_city") ?: ""
-                            )
-                            
-                            result = CognitoUserInfoResult(
-                                cognitoData = cognitoData,
-                                hasSessionMismatch = false
-                            )
-                        }
-                        
-                        Timber.d("getCognitoUserInfoWithSessionCheck: Created result: $result")
+                            override fun onFailure(exception: Exception?) {
+                                Timber.w("getCognitoUserInfoWithSessionCheck: Failed to get user details even with valid session: ${exception?.message}")
+                                result = CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
+                                latch.countDown()
+                            }
+                        })
+                    }
+                    
+                    override fun getAuthenticationDetails(
+                        authenticationContinuation: com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation,
+                        userId: String
+                    ) {
+                        Timber.d("getCognitoUserInfoWithSessionCheck: Authentication required for user: $userId")
+                        // Don't automatically provide credentials - this indicates session expired
+                        // Instead, return no data and let the user manually re-authenticate
+                        result = CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
+                        latch.countDown()
+                    }
+                    
+                    override fun getMFACode(continuation: com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation) {
+                        Timber.d("getCognitoUserInfoWithSessionCheck: MFA required")
+                        // Don't handle MFA automatically - return no data
+                        result = CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
+                        latch.countDown()
+                    }
+                    
+                    override fun authenticationChallenge(continuation: com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ChallengeContinuation) {
+                        Timber.d("getCognitoUserInfoWithSessionCheck: Authentication challenge required")
+                        // Don't handle challenges automatically - return no data
+                        result = CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
                         latch.countDown()
                     }
                     
                     override fun onFailure(exception: Exception?) {
-                        Timber.w("getCognitoUserInfoWithSessionCheck: Failed to get Cognito user details: ${exception?.message}")
-                        // This is likely an authentication error - treat as session mismatch
-                        try {
-                            currentUser.signOut()
-                            Timber.d("getCognitoUserInfoWithSessionCheck: Logged out user due to authentication failure")
-                        } catch (e: Exception) {
-                            Timber.w("getCognitoUserInfoWithSessionCheck: Failed to logout user: ${e.message}")
-                        }
-                        result = CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = true)
+                        Timber.w("getCognitoUserInfoWithSessionCheck: Failed to get session: ${exception?.message}")
+                        // Session is invalid/expired, but don't treat as session mismatch
+                        // The user can manually re-authenticate
+                        result = CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
                         latch.countDown()
                     }
                 })
                 
                 // Wait for response with timeout
-                val completed = latch.await(5, TimeUnit.SECONDS)
+                val completed = latch.await(10, TimeUnit.SECONDS)
                 if (!completed) {
-                    Timber.w("getCognitoUserInfoWithSessionCheck: Timeout waiting for user details")
-                    return@withContext CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = true)
+                    Timber.w("getCognitoUserInfoWithSessionCheck: Timeout waiting for session check")
+                    return@withContext CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
                 }
                 
                 Timber.d("getCognitoUserInfoWithSessionCheck: Returning result: $result")
-                result ?: CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = true)
+                result ?: CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)
             } else {
                 Timber.w("getCognitoUserInfoWithSessionCheck: No current user found")
                 CognitoUserInfoResult(cognitoData = null, hasSessionMismatch = false)

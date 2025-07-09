@@ -9,6 +9,7 @@ import extension.setupAnvil
 
 plugins {
     id("io.element.android-library")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -18,22 +19,19 @@ android {
 setupAnvil()
 
 dependencies {
-    implementation(projects.libraries.core)
     implementation(projects.libraries.architecture)
+    implementation(projects.libraries.core)
     implementation(projects.libraries.di)
-    implementation(projects.libraries.matrixui)
     implementation(projects.libraries.matrix.api)
-    api(projects.libraries.usersearch.api)
+    implementation(projects.libraries.usersearch.api)
     implementation(libs.kotlinx.collections.immutable)
-
-    // AWS Cognito SDK for user search functionality
+    
+    // Keep other dependencies
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.77.0")
-
+    
     testImplementation(libs.test.junit)
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.molecule.runtime)
     testImplementation(libs.test.truth)
-    testImplementation(libs.test.turbine)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.libraries.usersearch.test)
 }
