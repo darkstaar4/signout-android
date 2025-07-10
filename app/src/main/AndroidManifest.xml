@@ -38,6 +38,18 @@
                 android:value='androidx.startup' />
         </provider>
 
+        <!-- Custom Splash Activity -->
+        <activity
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ElementX.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <!--
         Using launchMode singleTask to avoid multiple instances of the Activity
         when the app is already open. This is important for incoming share (see
@@ -47,15 +59,10 @@
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
-            android:exported="true"
+            android:exported="false"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.ElementX.Splash"
+            android:theme="@style/Theme.ElementX"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <!-- Handle deep-link for notification ./tools/adb/deeplink.sh -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
