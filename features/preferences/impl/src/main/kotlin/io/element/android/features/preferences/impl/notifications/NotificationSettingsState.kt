@@ -49,6 +49,7 @@ data class NotificationSettingsState(
     /**
      * Whether the advanced settings should be shown.
      * This is true if the current push distributor is in a failure state or if there are multiple push distributors available.
+     * Note: UI is hidden but functionality is preserved for admin configuration.
      */
-    val showAdvancedSettings: Boolean = currentPushDistributor.isFailure() || availablePushDistributors.size > 1
+    val showAdvancedSettings: Boolean = false // Always false to hide UI
 }

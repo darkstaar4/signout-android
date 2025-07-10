@@ -8,26 +8,19 @@
 package io.element.android.features.preferences.impl.about
 
 import androidx.annotation.StringRes
-import io.element.android.features.preferences.impl.BuildConfig
-import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.features.preferences.impl.R
 
-private const val COPYRIGHT_URL = BuildConfig.URL_COPYRIGHT
-private const val USE_POLICY_URL = BuildConfig.URL_ACCEPTABLE_USE
-private const val PRIVACY_URL = BuildConfig.URL_PRIVACY
+private const val LEGAL_URL = "https://www.getsignout.com/legal"
 
 sealed class ElementLegal(
     @StringRes val titleRes: Int,
     val url: String,
 ) {
-    data object Copyright : ElementLegal(CommonStrings.common_copyright, COPYRIGHT_URL)
-    data object AcceptableUsePolicy : ElementLegal(CommonStrings.common_acceptable_use_policy, USE_POLICY_URL)
-    data object PrivacyPolicy : ElementLegal(CommonStrings.common_privacy_policy, PRIVACY_URL)
+    data object Legal : ElementLegal(R.string.action_legal, LEGAL_URL)
 }
 
 fun getAllLegals(): List<ElementLegal> {
     return listOf(
-        ElementLegal.Copyright,
-        ElementLegal.AcceptableUsePolicy,
-        ElementLegal.PrivacyPolicy,
+        ElementLegal.Legal,
     )
 }

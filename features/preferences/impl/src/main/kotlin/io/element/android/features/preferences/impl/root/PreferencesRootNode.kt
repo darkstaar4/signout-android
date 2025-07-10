@@ -52,6 +52,14 @@ class PreferencesRootNode @AssistedInject constructor(
         plugins<Callback>().forEach { it.onOpenBugReport() }
     }
 
+    private fun onOpenContactUrl(activity: Activity, isDark: Boolean) {
+        activity.openUrlInChromeCustomTab(
+            null,
+            darkTheme = isDark,
+            url = "https://www.getsignout.com/contact"
+        )
+    }
+
     private fun onSecureBackupClick() {
         plugins<Callback>().forEach { it.onSecureBackupClick() }
     }
@@ -134,7 +142,7 @@ class PreferencesRootNode @AssistedInject constructor(
             state = state,
             modifier = modifier,
             onBackClick = this::navigateUp,
-            onOpenRageShake = this::onOpenBugReport,
+            onOpenRageShake = { onOpenContactUrl(activity, isDark) },
             onOpenAnalytics = this::onOpenAnalytics,
             onOpenAbout = this::onOpenAbout,
             onSecureBackupClick = this::onSecureBackupClick,

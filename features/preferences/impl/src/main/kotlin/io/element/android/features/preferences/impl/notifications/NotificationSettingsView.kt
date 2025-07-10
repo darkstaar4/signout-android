@@ -214,6 +214,7 @@ private fun NotificationSettingsContentView(
                 onClick = onPushHistoryClick
             )
         }
+        // Advanced settings section - UI hidden but functionality preserved for admin configuration
         if (state.showAdvancedSettings) {
             PreferenceCategory(title = stringResource(id = CommonStrings.common_advanced_settings)) {
                 ListItem(
