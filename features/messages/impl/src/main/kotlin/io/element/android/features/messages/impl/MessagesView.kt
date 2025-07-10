@@ -106,6 +106,7 @@ import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.usersearch.api.UserMapping
 import io.element.android.wysiwyg.link.Link
 import kotlinx.collections.immutable.ImmutableList
 import timber.log.Timber
@@ -200,6 +201,7 @@ fun MessagesView(
                             isTombstoned = state.isTombstoned,
                             heroes = state.heroes,
                             dmUserIdentityState = state.dmUserVerificationState,
+                            dmUserMapping = state.dmUserMapping,
                             onBackClick = { hidingKeyboard { onBackClick() } },
                             onRoomDetailsClick = { hidingKeyboard { onRoomDetailsClick() } },
                         )
@@ -480,6 +482,7 @@ private fun MessagesViewTopBar(
     isTombstoned: Boolean,
     heroes: ImmutableList<AvatarData>,
     dmUserIdentityState: IdentityState?,
+    dmUserMapping: UserMapping?,
     onRoomDetailsClick: () -> Unit,
     onBackClick: () -> Unit,
 ) {
@@ -502,6 +505,7 @@ private fun MessagesViewTopBar(
                     roomAvatar = roomAvatar,
                     isTombstoned = isTombstoned,
                     heroes = heroes,
+                    dmUserMapping = dmUserMapping,
                     modifier = titleModifier
                 )
 
@@ -534,6 +538,7 @@ private fun RoomAvatarAndNameRow(
     roomAvatar: AvatarData,
     heroes: ImmutableList<AvatarData>,
     isTombstoned: Boolean,
+    dmUserMapping: UserMapping?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -547,18 +552,59 @@ private fun RoomAvatarAndNameRow(
                 isTombstoned = isTombstoned,
             ),
         )
-        Text(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .semantics {
-                    heading()
-                },
-            text = roomName ?: stringResource(CommonStrings.common_no_room_name),
-            style = ElementTheme.typography.fontBodyLgMedium,
-            fontStyle = FontStyle.Italic.takeIf { roomName == null },
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        
+        Timber.d("RoomAvatarAndNameRow: dmUserMapping = $dmUserMapping")
+        
+        if (dmUserMapping != null) {
+            // For DMs, show display name and enhanced format
+            Column(
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                Text(
+                    modifier = Modifier.semantics {
+                        heading()
+                    },
+                    text = dmUserMapping.displayName ?: roomName ?: stringResource(CommonStrings.common_no_room_name),
+                    style = ElementTheme.typography.fontBodyLgMedium,
+                    fontStyle = FontStyle.Italic.takeIf { dmUserMapping.displayName == null && roomName == null },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                // Enhanced format: @username | specialty | office city
+                val enhancedText = buildString {
+                    append("@${dmUserMapping.matrixUsername}")
+                    if (dmUserMapping.specialty?.isNotBlank() == true) {
+                        append(" | ${dmUserMapping.specialty}")
+                    }
+                    if (dmUserMapping.officeCity?.isNotBlank() == true) {
+                        append(" | ${dmUserMapping.officeCity}")
+                    }
+                }
+                
+                Text(
+                    text = enhancedText,
+                    style = ElementTheme.typography.fontBodySmRegular,
+                    color = ElementTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        } else {
+            // For regular rooms, show just the room name
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .semantics {
+                        heading()
+                    },
+                text = roomName ?: stringResource(CommonStrings.common_no_room_name),
+                style = ElementTheme.typography.fontBodyLgMedium,
+                fontStyle = FontStyle.Italic.takeIf { roomName == null },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

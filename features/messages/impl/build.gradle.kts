@@ -52,6 +52,7 @@ dependencies {
     implementation(projects.libraries.mediaplayer.api)
     implementation(projects.libraries.uiUtils)
     implementation(projects.libraries.testtags)
+    implementation(projects.libraries.usersearch.api)
     implementation(projects.features.networkmonitor.api)
     implementation(projects.services.analytics.compose)
     implementation(projects.services.toolbox.api)

@@ -84,9 +84,12 @@ import io.element.android.libraries.matrix.ui.model.getAvatarData
 import io.element.android.libraries.matrix.ui.room.getDirectRoomMember
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -117,6 +120,7 @@ class MessagesPresenter @AssistedInject constructor(
     private val permalinkParser: PermalinkParser,
     private val analyticsService: AnalyticsService,
     private val encryptionService: EncryptionService,
+    private val userMappingService: UserMappingService,
 ) : Presenter<MessagesState> {
     @AssistedFactory
     interface Factory {
@@ -191,10 +195,41 @@ class MessagesPresenter @AssistedInject constructor(
         }
 
         var dmUserVerificationState by remember { mutableStateOf<IdentityState?>(null) }
+        var dmUserMapping by remember { mutableStateOf<UserMapping?>(null) }
 
         val membersState by room.membersStateFlow.collectAsState()
         val dmRoomMember by room.getDirectRoomMember(membersState)
         val roomMemberIdentityStateChanges = identityChangeState.roomMemberIdentityStateChanges
+
+        // Get enhanced user mapping for DM user - make it reactive
+        LaunchedEffect(dmRoomMember, roomInfo.isDm) {
+            if (roomInfo.isDm) {
+                val currentDmRoomMember = dmRoomMember
+                if (currentDmRoomMember != null) {
+                    val username = currentDmRoomMember.userId.value.substringAfter("@").substringBefore(":")
+                    Timber.d("MessagesPresenter: Getting user mapping for username: $username")
+                    
+                    // Initial mapping retrieval
+                    dmUserMapping = userMappingService.getUserMapping(username)
+                    Timber.d("MessagesPresenter: Retrieved user mapping: $dmUserMapping")
+                    
+                    // Keep checking for enhanced mapping updates
+                    while (true) {
+                        delay(2000) // Check every 2 seconds
+                        val updatedMapping = userMappingService.getUserMapping(username)
+                        if (updatedMapping != dmUserMapping) {
+                            Timber.d("MessagesPresenter: User mapping updated: $updatedMapping")
+                            dmUserMapping = updatedMapping
+                        }
+                    }
+                } else {
+                    Timber.d("MessagesPresenter: No DM room member found")
+                    dmUserMapping = null
+                }
+            } else {
+                dmUserMapping = null
+            }
+        }
 
         LifecycleResumeEffect(dmRoomMember, roomInfo.isEncrypted) {
             if (roomInfo.isEncrypted == true) {
@@ -263,6 +298,7 @@ class MessagesPresenter @AssistedInject constructor(
             appName = buildMeta.applicationName,
             pinnedMessagesBannerState = pinnedMessagesBannerState,
             dmUserVerificationState = dmUserVerificationState,
+            dmUserMapping = dmUserMapping,
             roomMemberModerationState = roomMemberModerationState,
             successorRoom = roomInfo.successorRoom,
             eventSink = { handleEvents(it) }

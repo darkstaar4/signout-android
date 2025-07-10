@@ -31,16 +31,12 @@ class UserProfileNodeHelper(
         context: Context,
         permalinkBuilder: PermalinkBuilder,
     ) {
-        val permalinkResult = permalinkBuilder.permalinkForUser(userId)
-        permalinkResult.onSuccess { permalink ->
-            context.startSharePlainTextIntent(
-                activityResultLauncher = null,
-                chooserTitle = context.getString(CommonStrings.action_share),
-                text = permalink,
-                noActivityFoundMessage = context.getString(R.string.error_no_compatible_app_found)
-            )
-        }.onFailure {
-            Timber.e(it)
-        }
+        // Share static SignOut download link instead of user permalink
+        context.startSharePlainTextIntent(
+            activityResultLauncher = null,
+            chooserTitle = context.getString(CommonStrings.action_share),
+            text = "https://www.signout.com/download",
+            noActivityFoundMessage = context.getString(R.string.error_no_compatible_app_found)
+        )
     }
 }

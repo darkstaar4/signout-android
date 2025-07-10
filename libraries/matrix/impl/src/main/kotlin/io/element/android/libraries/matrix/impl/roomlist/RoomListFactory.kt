@@ -35,8 +35,11 @@ private val ROOM_LIST_RUST_FILTERS = listOf(
 internal class RoomListFactory(
     private val innerRoomListService: RoomListService,
     private val sessionCoroutineScope: CoroutineScope,
+    private val roomInfoMapper: io.element.android.libraries.matrix.impl.room.RoomInfoMapper,
 ) {
-    private val roomSummaryDetailsFactory: RoomSummaryFactory = RoomSummaryFactory()
+    private val roomSummaryDetailsFactory: RoomSummaryFactory = RoomSummaryFactory(
+        roomInfoMapper = roomInfoMapper
+    )
 
     /**
      * Creates a room list that can be used to load more rooms and filter them dynamically.

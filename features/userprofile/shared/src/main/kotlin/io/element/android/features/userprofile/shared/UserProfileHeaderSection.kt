@@ -43,6 +43,7 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.toImmutableList
 
 @Composable
@@ -50,6 +51,7 @@ fun UserProfileHeaderSection(
     avatarUrl: String?,
     userId: UserId,
     userName: String?,
+    userMapping: UserMapping?,
     verificationState: UserProfileVerificationState,
     openAvatarPreview: (url: String) -> Unit,
     onUserIdClick: () -> Unit,
@@ -77,26 +79,62 @@ fun UserProfileHeaderSection(
                 .testTag(TestTags.memberDetailAvatar)
         )
         Spacer(modifier = Modifier.height(24.dp))
-        if (userName != null) {
+        
+        if (userMapping != null) {
+            // Show enhanced format: First Name Last Name
             Text(
                 modifier = Modifier
                     .clipToBounds()
                     .semantics {
                         heading()
                     },
-                text = userName,
+                text = userMapping.displayName,
                 style = ElementTheme.typography.fontHeadingLgBold,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(6.dp))
+            
+            // Enhanced format: @username | specialty | office city
+            val enhancedText = buildString {
+                append("@${userMapping.matrixUsername}")
+                if (userMapping.specialty?.isNotBlank() == true) {
+                    append(" | ${userMapping.specialty}")
+                }
+                if (userMapping.officeCity?.isNotBlank() == true) {
+                    append(" | ${userMapping.officeCity}")
+                }
+            }
+            
+            Text(
+                modifier = Modifier.niceClickable { onUserIdClick() },
+                text = enhancedText,
+                style = ElementTheme.typography.fontBodyLgRegular,
+                color = ElementTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            // Fallback to original format
+            if (userName != null) {
+                Text(
+                    modifier = Modifier
+                        .clipToBounds()
+                        .semantics {
+                            heading()
+                        },
+                    text = userName,
+                    style = ElementTheme.typography.fontHeadingLgBold,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+            Text(
+                modifier = Modifier.niceClickable { onUserIdClick() },
+                text = userId.value,
+                style = ElementTheme.typography.fontBodyLgRegular,
+                color = ElementTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
         }
-        Text(
-            modifier = Modifier.niceClickable { onUserIdClick() },
-            text = userId.value,
-            style = ElementTheme.typography.fontBodyLgRegular,
-            color = ElementTheme.colors.textSecondary,
-            textAlign = TextAlign.Center,
-        )
         when (verificationState) {
             UserProfileVerificationState.UNKNOWN, UserProfileVerificationState.UNVERIFIED -> Unit
             UserProfileVerificationState.VERIFIED -> {
@@ -140,6 +178,7 @@ internal fun UserProfileHeaderSectionPreview() = ElementPreview {
         avatarUrl = null,
         userId = UserId("@alice:example.com"),
         userName = "Alice",
+        userMapping = null,
         verificationState = UserProfileVerificationState.VERIFIED,
         openAvatarPreview = {},
         onUserIdClick = {},
@@ -154,6 +193,7 @@ internal fun UserProfileHeaderSectionWithVerificationViolationPreview() = Elemen
         avatarUrl = null,
         userId = UserId("@alice:example.com"),
         userName = "Alice",
+        userMapping = null,
         verificationState = UserProfileVerificationState.VERIFICATION_VIOLATION,
         openAvatarPreview = {},
         onUserIdClick = {},

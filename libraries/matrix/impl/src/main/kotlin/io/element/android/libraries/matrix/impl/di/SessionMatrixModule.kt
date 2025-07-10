@@ -16,35 +16,50 @@ import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import io.element.android.libraries.matrix.api.media.MatrixMediaLoader
 import io.element.android.libraries.matrix.api.media.MediaPreviewService
+import io.element.android.libraries.matrix.api.notification.NotificationService
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
+import io.element.android.libraries.matrix.api.pusher.PushersService
 import io.element.android.libraries.matrix.api.room.RoomMembershipObserver
 import io.element.android.libraries.matrix.api.roomdirectory.RoomDirectoryService
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
 import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.api.verification.SessionVerificationService
+import io.element.android.libraries.matrix.impl.RustMatrixClient
+import io.element.android.libraries.usersearch.api.CognitoUserIntegrationService
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
 
 @Module
 @ContributesTo(SessionScope::class)
 object SessionMatrixModule {
-    @Provides
-    fun providesSessionVerificationService(matrixClient: MatrixClient): SessionVerificationService {
-        return matrixClient.sessionVerificationService()
-    }
 
     @Provides
-    fun providesNotificationSettingsService(matrixClient: MatrixClient): NotificationSettingsService {
-        return matrixClient.notificationSettingsService()
-    }
-
-    @Provides
-    fun provideRoomMembershipObserver(matrixClient: MatrixClient): RoomMembershipObserver {
-        return matrixClient.roomMembershipObserver()
+    @SessionCoroutineScope
+    fun providesSessionCoroutineScope(matrixClient: MatrixClient): CoroutineScope {
+        return matrixClient.sessionCoroutineScope
     }
 
     @Provides
     fun providesRoomListService(matrixClient: MatrixClient): RoomListService {
         return matrixClient.roomListService
+    }
+
+    @Provides
+    fun providesRoomDirectoryService(matrixClient: MatrixClient): RoomDirectoryService {
+        return matrixClient.roomDirectoryService()
+    }
+
+    @Provides
+    fun providesMatrixMediaLoader(matrixClient: MatrixClient): MatrixMediaLoader {
+        return matrixClient.mediaLoader
+    }
+
+    @Provides
+    fun providesMediaPreviewService(matrixClient: MatrixClient): MediaPreviewService {
+        return matrixClient.mediaPreviewService()
     }
 
     @Provides
@@ -58,23 +73,75 @@ object SessionMatrixModule {
     }
 
     @Provides
-    fun provideMediaLoader(matrixClient: MatrixClient): MatrixMediaLoader {
-        return matrixClient.mediaLoader
-    }
-
-    @SessionCoroutineScope
-    @Provides
-    fun provideSessionCoroutineScope(matrixClient: MatrixClient): CoroutineScope {
-        return matrixClient.sessionCoroutineScope
+    fun providesNotificationService(matrixClient: MatrixClient): NotificationService {
+        return matrixClient.notificationService()
     }
 
     @Provides
-    fun providesRoomDirectoryService(matrixClient: MatrixClient): RoomDirectoryService {
-        return matrixClient.roomDirectoryService()
+    fun providesNotificationSettingsService(matrixClient: MatrixClient): NotificationSettingsService {
+        return matrixClient.notificationSettingsService()
     }
 
     @Provides
-    fun providesMediaPreviewService(matrixClient: MatrixClient): MediaPreviewService {
-        return matrixClient.mediaPreviewService()
+    fun providesSessionVerificationService(matrixClient: MatrixClient): SessionVerificationService {
+        return matrixClient.sessionVerificationService()
+    }
+
+    @Provides
+    fun providesPushersService(matrixClient: MatrixClient): PushersService {
+        return matrixClient.pushersService()
+    }
+
+    @Provides
+    fun providesRoomMembershipObserver(matrixClient: MatrixClient): RoomMembershipObserver {
+        return matrixClient.roomMembershipObserver()
+    }
+
+    @Provides
+    fun providesSessionMatrixSetup(
+        matrixClient: MatrixClient,
+        userMappingService: UserMappingService,
+        cognitoUserIntegrationService: CognitoUserIntegrationService,
+        @SessionCoroutineScope coroutineScope: CoroutineScope
+    ): SessionMatrixSetup {
+        return SessionMatrixSetup(
+            matrixClient,
+            userMappingService,
+            cognitoUserIntegrationService,
+            coroutineScope
+        )
     }
 }
+
+class SessionMatrixSetup @Inject constructor(
+    private val matrixClient: MatrixClient,
+    private val userMappingService: UserMappingService,
+    private val cognitoUserIntegrationService: CognitoUserIntegrationService,
+    @SessionCoroutineScope private val coroutineScope: CoroutineScope
+) {
+    init {
+        setupMatrix()
+    }
+
+    private fun setupMatrix() {
+        // Set up user mapping service for the matrix client
+        if (matrixClient is RustMatrixClient) {
+            matrixClient.setUserMappingService(userMappingService)
+        }
+
+        // Populate AWS backend data in background
+        coroutineScope.launch {
+            try {
+                cognitoUserIntegrationService.populateCurrentUserMapping()
+                Timber.d("SessionMatrixSetup: AWS backend user mapping populated")
+                
+                // Trigger room list refresh after AWS backend population
+                matrixClient.roomListService.allRooms.rebuildSummaries()
+                Timber.d("SessionMatrixSetup: Room list refreshed after AWS backend population")
+            } catch (e: Exception) {
+                Timber.e(e, "SessionMatrixSetup: Failed to populate AWS backend user mapping")
+            }
+        }
+    }
+}
+

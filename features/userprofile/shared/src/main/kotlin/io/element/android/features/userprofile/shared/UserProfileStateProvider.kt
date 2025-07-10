@@ -18,6 +18,7 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.ui.components.aMatrixUser
+import io.element.android.libraries.usersearch.api.UserMapping
 
 open class UserProfileStateProvider : PreviewParameterProvider<UserProfileState> {
     override val values: Sequence<UserProfileState>
@@ -39,6 +40,7 @@ fun aUserProfileState(
     userId: UserId = UserId("@daniel:domain.com"),
     userName: String? = "Daniel",
     avatarUrl: String? = null,
+    userMapping: UserMapping? = null,
     isBlocked: AsyncData<Boolean> = AsyncData.Success(false),
     verificationState: UserProfileVerificationState = UserProfileVerificationState.UNVERIFIED,
     startDmActionState: AsyncAction<RoomId> = AsyncAction.Uninitialized,
@@ -52,6 +54,7 @@ fun aUserProfileState(
     userId = userId,
     userName = userName,
     avatarUrl = avatarUrl,
+    userMapping = userMapping,
     isBlocked = isBlocked,
     verificationState = verificationState,
     startDmActionState = startDmActionState,

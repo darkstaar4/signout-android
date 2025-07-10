@@ -40,9 +40,8 @@ class MatrixUserRepository @Inject constructor(
 ) : UserRepository {
     
     init {
-        // Initialize the user mapping service
-        userMappingService.initialize()
-        Timber.d("MatrixUserRepository: UserMappingService initialized")
+        // UserMappingService now initializes automatically in constructor
+        Timber.d("MatrixUserRepository: UserMappingService ready")
         
         // Populate current user's Cognito data
         CoroutineScope(Dispatchers.IO).launch {

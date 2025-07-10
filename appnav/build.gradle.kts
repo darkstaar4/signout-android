@@ -29,6 +29,7 @@ dependencies {
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.deeplink)
     implementation(projects.libraries.matrix.api)
+    implementation(projects.libraries.matrix.impl)
     implementation(projects.libraries.oidc.api)
     implementation(projects.libraries.preferences.api)
     implementation(projects.libraries.push.api)

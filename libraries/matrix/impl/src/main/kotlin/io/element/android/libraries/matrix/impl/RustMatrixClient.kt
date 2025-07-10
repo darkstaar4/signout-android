@@ -82,6 +82,7 @@ import io.element.android.libraries.matrix.impl.util.cancelAndDestroy
 import io.element.android.libraries.matrix.impl.util.mxCallbackFlow
 import io.element.android.libraries.matrix.impl.verification.RustSessionVerificationService
 import io.element.android.libraries.sessionstorage.api.SessionStore
+import io.element.android.libraries.usersearch.api.UserMappingService
 import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -174,6 +175,9 @@ class RustMatrixClient(
 
     private val roomSyncSubscriber: RoomSyncSubscriber = RoomSyncSubscriber(innerRoomListService, dispatchers)
 
+    // RoomInfoMapper will be injected at the session level
+    private val roomInfoMapper = RoomInfoMapper()
+
     override val roomListService: RoomListService = RustRoomListService(
         innerRoomListService = innerRoomListService,
         sessionCoroutineScope = sessionCoroutineScope,
@@ -181,6 +185,7 @@ class RustMatrixClient(
         roomListFactory = RoomListFactory(
             innerRoomListService = innerRoomListService,
             sessionCoroutineScope = sessionCoroutineScope,
+            roomInfoMapper = roomInfoMapper,
         ),
         roomSyncSubscriber = roomSyncSubscriber,
     )
@@ -190,8 +195,6 @@ class RustMatrixClient(
         isSyncServiceReady = rustSyncService.syncState.map { it == SyncState.Running },
         sessionCoroutineScope = sessionCoroutineScope,
     )
-
-    private val roomInfoMapper = RoomInfoMapper()
     private val roomMembershipObserver = RoomMembershipObserver()
     private val roomFactory = RustRoomFactory(
         roomListService = roomListService,
@@ -259,6 +262,14 @@ class RustMatrixClient(
             // Force a refresh of the profile
             getUserProfile()
         }
+    }
+
+    /**
+     * Set the UserMappingService on the RoomInfoMapper.
+     * This is called during session initialization.
+     */
+    fun setUserMappingService(userMappingService: UserMappingService) {
+        roomInfoMapper.setUserMappingService(userMappingService)
     }
 
     override fun userIdServerName(): String {

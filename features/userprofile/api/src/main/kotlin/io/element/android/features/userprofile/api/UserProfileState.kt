@@ -12,11 +12,13 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.usersearch.api.UserMapping
 
 data class UserProfileState(
     val userId: UserId,
     val userName: String?,
     val avatarUrl: String?,
+    val userMapping: UserMapping?,
     val verificationState: UserProfileVerificationState,
     val isBlocked: AsyncData<Boolean>,
     val startDmActionState: AsyncAction<RoomId>,

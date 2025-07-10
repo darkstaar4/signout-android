@@ -14,6 +14,7 @@ import io.element.android.features.roommembermoderation.api.RoomMemberModeration
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.user.MatrixUser
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.toPersistentList
 
 class InternalRoomMemberModerationStateProvider : PreviewParameterProvider<InternalRoomMemberModerationState> {
@@ -77,6 +78,7 @@ fun aRoomMembersModerationState(
     canKick: Boolean = false,
     canBan: Boolean = false,
     selectedUser: MatrixUser? = null,
+    selectedUserMapping: UserMapping? = null,
     actions: List<ModerationActionState> = emptyList(),
     kickUserAsyncAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     banUserAsyncAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
@@ -86,6 +88,7 @@ fun aRoomMembersModerationState(
     canKick = canKick,
     canBan = canBan,
     selectedUser = selectedUser,
+    selectedUserMapping = selectedUserMapping,
     actions = actions.toPersistentList(),
     kickUserAsyncAction = kickUserAsyncAction,
     banUserAsyncAction = banUserAsyncAction,

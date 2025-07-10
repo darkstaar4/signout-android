@@ -23,7 +23,7 @@ class RoomSummaryListProcessor(
     private val roomSummaries: MutableSharedFlow<List<RoomSummary>>,
     private val roomListService: RoomListServiceInterface,
     private val coroutineContext: CoroutineContext,
-    private val roomSummaryDetailsFactory: RoomSummaryFactory = RoomSummaryFactory(),
+    private val roomSummaryDetailsFactory: RoomSummaryFactory,
 ) {
     private val mutex = Mutex()
 

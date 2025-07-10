@@ -26,6 +26,7 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.ImmutableList
 
 @Immutable
@@ -54,6 +55,7 @@ data class MessagesState(
     val appName: String,
     val pinnedMessagesBannerState: PinnedMessagesBannerState,
     val dmUserVerificationState: IdentityState?,
+    val dmUserMapping: UserMapping?,
     val roomMemberModerationState: RoomMemberModerationState,
     val successorRoom: SuccessorRoom?,
     val eventSink: (MessagesEvents) -> Unit

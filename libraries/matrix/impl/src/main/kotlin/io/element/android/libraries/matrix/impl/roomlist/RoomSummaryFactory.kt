@@ -15,7 +15,7 @@ import org.matrix.rustcomponents.sdk.use
 
 class RoomSummaryFactory(
     private val roomMessageFactory: RoomMessageFactory = RoomMessageFactory(),
-    private val roomInfoMapper: RoomInfoMapper = RoomInfoMapper(),
+    private val roomInfoMapper: RoomInfoMapper,
 ) {
     suspend fun create(room: Room): RoomSummary {
         val roomInfo = room.roomInfo().let(roomInfoMapper::map)

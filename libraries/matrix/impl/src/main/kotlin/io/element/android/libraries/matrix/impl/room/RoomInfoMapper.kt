@@ -1,5 +1,5 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright 2024 New Vector Ltd.
  *
  * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
  * Please see LICENSE files in the repository root for full details.
@@ -21,22 +21,36 @@ import io.element.android.libraries.matrix.impl.room.join.map
 import io.element.android.libraries.matrix.impl.room.member.RoomMemberMapper
 import io.element.android.libraries.matrix.impl.room.powerlevels.RoomPowerLevelsValuesMapper
 import io.element.android.libraries.matrix.impl.room.tombstone.map
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentMap
-import org.matrix.rustcomponents.sdk.Membership
-import org.matrix.rustcomponents.sdk.RoomHero
-import uniffi.matrix_sdk_base.EncryptionState
 import org.matrix.rustcomponents.sdk.Membership as RustMembership
+import org.matrix.rustcomponents.sdk.RoomHero
 import org.matrix.rustcomponents.sdk.RoomInfo as RustRoomInfo
 import org.matrix.rustcomponents.sdk.RoomNotificationMode as RustRoomNotificationMode
 import org.matrix.rustcomponents.sdk.RoomPowerLevels as RustRoomPowerLevels
+import uniffi.matrix_sdk_base.EncryptionState
+import javax.inject.Inject
 
-class RoomInfoMapper {
+class RoomInfoMapper @Inject constructor() {
+    private var userMappingService: UserMappingService? = null
+
+    fun setUserMappingService(service: UserMappingService) {
+        this.userMappingService = service
+    }
+
     fun map(rustRoomInfo: RustRoomInfo): RoomInfo = rustRoomInfo.let {
+        val enhancedName = if (it.isDirect && it.activeMembersCount.toLong() == 2L) {
+            // For DMs, try to enhance the name with user mapping data
+            enhanceDirectRoomName(it.displayName, it.elementHeroes())
+        } else {
+            it.displayName
+        }
+
         return RoomInfo(
             id = RoomId(it.id),
             creator = it.creator?.let(::UserId),
-            name = it.displayName,
+            name = enhancedName,
             rawName = it.rawName,
             topic = it.topic,
             avatarUrl = it.avatarUrl,
@@ -73,13 +87,40 @@ class RoomInfoMapper {
             successorRoom = it.successorRoom?.map(),
         )
     }
+
+    private fun enhanceDirectRoomName(originalName: String?, heroes: List<MatrixUser>): String? {
+        // If there's no original name or no heroes, return as-is
+        if (originalName == null || heroes.isEmpty()) {
+            return originalName
+        }
+
+        // If UserMappingService is not available, return original name
+        val mappingService = userMappingService ?: return originalName
+
+        // Get the hero user (the other user in the DM)
+        val heroUser = heroes.firstOrNull() ?: return originalName
+
+        // Extract username from hero user ID
+        val username = heroUser.userId.value.substringAfter("@").substringBefore(":")
+
+        // Try to get enhanced user mapping
+        val userMapping = mappingService.getUserMapping(username)
+
+        return if (userMapping != null) {
+            // Use the enhanced display name (First Name Last Name)
+            userMapping.displayName
+        } else {
+            // Fall back to original name
+            originalName
+        }
+    }
 }
 
 fun RustMembership.map(): CurrentUserMembership = when (this) {
     RustMembership.INVITED -> CurrentUserMembership.INVITED
     RustMembership.JOINED -> CurrentUserMembership.JOINED
     RustMembership.LEFT -> CurrentUserMembership.LEFT
-    Membership.KNOCKED -> CurrentUserMembership.KNOCKED
+    RustMembership.KNOCKED -> CurrentUserMembership.KNOCKED
     RustMembership.BANNED -> CurrentUserMembership.BANNED
 }
 

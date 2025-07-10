@@ -33,6 +33,8 @@ import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.room.canBanAsState
 import io.element.android.libraries.matrix.ui.room.canKickAsState
 import io.element.android.libraries.matrix.ui.room.userPowerLevelAsState
+import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
@@ -47,6 +49,7 @@ class RoomMemberModerationPresenter @Inject constructor(
     private val room: JoinedRoom,
     private val dispatchers: CoroutineDispatchers,
     private val analyticsService: AnalyticsService,
+    private val userMappingService: UserMappingService,
 ) : Presenter<RoomMemberModerationState> {
     @Composable
     override fun present(): RoomMemberModerationState {
@@ -65,6 +68,9 @@ class RoomMemberModerationPresenter @Inject constructor(
         var selectedUser by remember {
             mutableStateOf<MatrixUser?>(null)
         }
+        var selectedUserMapping by remember {
+            mutableStateOf<UserMapping?>(null)
+        }
         val moderationActions = remember { mutableStateOf(persistentListOf<ModerationActionState>()) }
 
         fun handleEvent(event: RoomMemberModerationEvents) {
@@ -74,6 +80,10 @@ class RoomMemberModerationPresenter @Inject constructor(
                     val member = room.membersStateFlow.value.roomMembers()?.firstOrNull {
                         it.userId == event.user.userId
                     }
+                    // Get enhanced user mapping
+                    val username = event.user.userId.value.substringAfter("@").substringBefore(":")
+                    selectedUserMapping = userMappingService.getUserMapping(username)
+                    
                     moderationActions.value = computeModerationActions(
                         member = member,
                         canKick = canKick.value,
@@ -118,6 +128,7 @@ class RoomMemberModerationPresenter @Inject constructor(
                 }
                 is InternalRoomMemberModerationEvents.Reset -> {
                     selectedUser = null
+                    selectedUserMapping = null
                     kickUserAsyncAction.value = AsyncAction.Uninitialized
                     banUserAsyncAction.value = AsyncAction.Uninitialized
                     unbanUserAsyncAction.value = AsyncAction.Uninitialized
@@ -129,6 +140,7 @@ class RoomMemberModerationPresenter @Inject constructor(
             canKick = canKick.value,
             canBan = canBan.value,
             selectedUser = selectedUser,
+            selectedUserMapping = selectedUserMapping,
             actions = moderationActions.value,
             kickUserAsyncAction = kickUserAsyncAction.value,
             banUserAsyncAction = banUserAsyncAction.value,

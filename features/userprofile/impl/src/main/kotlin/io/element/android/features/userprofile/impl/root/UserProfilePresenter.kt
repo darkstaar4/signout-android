@@ -34,6 +34,8 @@ import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.user.MatrixUser
+import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -46,6 +48,7 @@ class UserProfilePresenter @AssistedInject constructor(
     private val client: MatrixClient,
     private val startDMAction: StartDMAction,
     private val sessionEnterpriseService: SessionEnterpriseService,
+    private val userMappingService: UserMappingService,
 ) : Presenter<UserProfileState> {
     @AssistedFactory
     interface Factory {
@@ -97,6 +100,10 @@ class UserProfilePresenter @AssistedInject constructor(
                 .launchIn(this)
         }
         val userProfile by produceState<MatrixUser?>(null) { value = client.getProfile(userId).getOrNull() }
+        val userMapping by produceState<UserMapping?>(null) {
+            val username = userId.value.substringAfter("@").substringBefore(":")
+            value = userMappingService.getUserMapping(username)
+        }
 
         fun handleEvents(event: UserProfileEvents) {
             when (event) {
@@ -142,6 +149,7 @@ class UserProfilePresenter @AssistedInject constructor(
             userId = userId,
             userName = userProfile?.displayName,
             avatarUrl = userProfile?.avatarUrl,
+            userMapping = userMapping,
             isBlocked = isBlocked.value,
             verificationState = UserProfileVerificationState.UNKNOWN,
             startDmActionState = startDmActionState.value,

@@ -31,6 +31,7 @@ dependencies {
     implementation(projects.libraries.designsystem)
     implementation(projects.libraries.uiStrings)
     implementation(projects.libraries.androidutils)
+    implementation(projects.libraries.usersearch.api)
     implementation(projects.libraries.mediaviewer.api)
     implementation(projects.features.call.api)
     implementation(projects.features.enterprise.api)

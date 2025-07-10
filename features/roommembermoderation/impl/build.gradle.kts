@@ -30,6 +30,7 @@ dependencies {
     api(projects.features.roommembermoderation.api)
     implementation(projects.libraries.designsystem)
     implementation(projects.libraries.uiStrings)
+    implementation(projects.libraries.usersearch.api)
     implementation(projects.services.analytics.compose)
 
     testImplementation(libs.test.junit)

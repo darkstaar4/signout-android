@@ -13,78 +13,57 @@ package io.element.android.libraries.usersearch.api
 data class UserMapping(
     val matrixUserId: String, // e.g., "@racexcars:signout.io"
     val matrixUsername: String, // e.g., "racexcars"
-    val cognitoUsername: String?, // e.g., "racexcars" (preferred_username)
+    val cognitoUsername: String, // e.g., "racexcars" (preferred_username)
     val displayName: String, // e.g., "Race X Cars" (given_name + family_name)
-    val firstName: String?, // e.g., "Race" (given_name)
-    val lastName: String?, // e.g., "X Cars" (family_name)
-    val email: String?, // e.g., "race@example.com"
-    val specialty: String?, // e.g., "Addiction Medicine" (custom:specialty)
-    val officeCity: String?, // e.g., "Fresno" (custom:office_city)
-    val avatarUrl: String? = null, // Matrix avatar URL
+    val firstName: String, // e.g., "Race" (given_name)
+    val lastName: String, // e.g., "X Cars" (family_name)
+    val email: String, // e.g., "racexcars@gmail.com"
+    val specialty: String?, // e.g., "Orthopedic Surgery"
+    val officeCity: String?, // e.g., "San Diego"
+    val avatarUrl: String? = null // Avatar URL if available
 )
 
 /**
- * Service for managing user mappings between Matrix users and Cognito user data.
- * This service stores enhanced user information that includes Cognito attributes
- * like specialty and office city for better search result display.
+ * Service for managing user mappings between Matrix usernames and enhanced Cognito user data
  */
 interface UserMappingService {
-    
     /**
-     * Initialize the service. This should be called once when the service is created.
+     * Get user mapping for a given matrix username
      */
-    fun initialize()
+    fun getUserMapping(matrixUsername: String): UserMapping?
     
     /**
-     * Get a user mapping by their Matrix username (without @ or domain).
-     * 
-     * @param username The Matrix username (e.g., "racexcars")
-     * @return The user mapping if found, null otherwise
-     */
-    fun getUserMapping(username: String): UserMapping?
-    
-    /**
-     * Search for users by query string. This searches across display names,
-     * usernames, specialties, and office cities.
-     * 
-     * @param query The search query
-     * @return List of matching user mappings
-     */
-    fun searchUsers(query: String): List<UserMapping>
-    
-    /**
-     * Add a user mapping from Cognito data. This creates a UserMapping from
-     * the provided Cognito user attributes.
-     * 
-     * @param matrixUserId The Matrix user ID (e.g., "@username:domain")
-     * @param matrixUsername The Matrix username (e.g., "username")
-     * @param cognitoUsername The Cognito preferred_username
-     * @param firstName The Cognito given_name
-     * @param lastName The Cognito family_name
-     * @param email The Cognito email
-     * @param specialty The Cognito custom:specialty
-     * @param officeCity The Cognito custom:office_city
+     * Add user mapping from Cognito data
      */
     fun addUserFromCognitoData(
         matrixUserId: String,
         matrixUsername: String,
-        cognitoUsername: String?,
-        firstName: String?,
-        lastName: String?,
-        email: String?,
+        cognitoUsername: String,
+        givenName: String,
+        familyName: String,
+        email: String,
         specialty: String?,
-        officeCity: String?
+        officeCity: String?,
+        avatarUrl: String? = null
     )
     
     /**
-     * Remove a user mapping by their Matrix username.
-     * 
-     * @param username The Matrix username (e.g., "racexcars")
+     * Search for users by query string
      */
-    fun removeUser(username: String)
+    fun searchUsers(query: String): List<UserMapping>
     
     /**
-     * Clear all user mappings. This is useful for logout scenarios.
+     * Remove user mapping
+     */
+    fun removeUser(matrixUsername: String)
+    
+    /**
+     * Clear all mappings
      */
     fun clearAll()
+    
+    /**
+     * Get the count of cached mappings (for optimization checks)
+     */
+    fun getCachedMappingsCount(): Int
 } 

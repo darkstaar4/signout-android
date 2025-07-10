@@ -44,6 +44,7 @@ import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.aTextEditorStateRich
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 
@@ -107,6 +108,7 @@ fun aMessagesState(
     enableVoiceMessages: Boolean = true,
     pinnedMessagesBannerState: PinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(),
     dmUserVerificationState: IdentityState? = null,
+    dmUserMapping: UserMapping? = null,
     roomMemberModerationState: RoomMemberModerationState = aRoomMemberModerationState(),
     successorRoom: SuccessorRoom? = null,
     eventSink: (MessagesEvents) -> Unit = {},
@@ -135,6 +137,7 @@ fun aMessagesState(
     appName = "Element",
     pinnedMessagesBannerState = pinnedMessagesBannerState,
     dmUserVerificationState = dmUserVerificationState,
+    dmUserMapping = dmUserMapping,
     roomMemberModerationState = roomMemberModerationState,
     successorRoom = successorRoom,
     eventSink = eventSink,

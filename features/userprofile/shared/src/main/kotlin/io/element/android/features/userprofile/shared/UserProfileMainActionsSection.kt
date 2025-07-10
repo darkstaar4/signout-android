@@ -39,13 +39,14 @@ fun UserProfileMainActionsSection(
                 onClick = onStartDM,
             )
         }
-        if (canCall) {
-            MainActionButton(
-                title = stringResource(CommonStrings.action_call),
-                imageVector = CompoundIcons.VideoCall(),
-                onClick = onCall,
-            )
-        }
+        // Call button hidden for now - functionality preserved for future implementation
+        // if (canCall) {
+        //     MainActionButton(
+        //         title = stringResource(CommonStrings.action_call),
+        //         imageVector = CompoundIcons.VideoCall(),
+        //         onClick = onCall,
+        //     )
+        // }
         MainActionButton(
             title = stringResource(CommonStrings.action_share),
             imageVector = CompoundIcons.ShareAndroid(),

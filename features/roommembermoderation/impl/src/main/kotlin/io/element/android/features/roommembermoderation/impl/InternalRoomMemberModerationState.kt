@@ -12,12 +12,14 @@ import io.element.android.features.roommembermoderation.api.RoomMemberModeration
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.user.MatrixUser
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.ImmutableList
 
 data class InternalRoomMemberModerationState(
     override val canKick: Boolean,
     override val canBan: Boolean,
     val selectedUser: MatrixUser?,
+    val selectedUserMapping: UserMapping?,
     val actions: ImmutableList<ModerationActionState>,
     val kickUserAsyncAction: AsyncAction<Unit>,
     val banUserAsyncAction: AsyncAction<Unit>,

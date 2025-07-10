@@ -53,6 +53,7 @@ import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.model.getAvatarData
 import io.element.android.libraries.matrix.ui.model.getBestName
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -68,6 +69,7 @@ fun RoomMemberModerationView(
         if (selectedUser != null && state.canDisplayActions) {
             RoomMemberActionsBottomSheet(
                 user = selectedUser,
+                userMapping = state.selectedUserMapping,
                 actions = state.actions,
                 onSelectAction = onSelectAction,
                 onDismiss = { state.eventSink(InternalRoomMemberModerationEvents.Reset) },
@@ -203,6 +205,7 @@ private fun RoomMemberAsyncActions(
 @Composable
 private fun RoomMemberActionsBottomSheet(
     user: MatrixUser,
+    userMapping: UserMapping?,
     actions: ImmutableList<ModerationActionState>,
     onSelectAction: (ModerationAction, MatrixUser) -> Unit,
     onDismiss: () -> Unit,
@@ -229,9 +232,10 @@ private fun RoomMemberActionsBottomSheet(
                         .padding(bottom = 28.dp)
                         .align(Alignment.CenterHorizontally)
             )
-            user.displayName?.let {
+            if (userMapping != null) {
+                // Show enhanced format: First Name Last Name
                 Text(
-                    text = it,
+                    text = userMapping.displayName,
                     style = ElementTheme.typography.fontHeadingLgBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -240,18 +244,55 @@ private fun RoomMemberActionsBottomSheet(
                             .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                             .fillMaxWidth()
                 )
+                
+                // Enhanced format: @username | specialty | office city
+                val enhancedText = buildString {
+                    append("@${userMapping.matrixUsername}")
+                    if (userMapping.specialty?.isNotBlank() == true) {
+                        append(" | ${userMapping.specialty}")
+                    }
+                    if (userMapping.officeCity?.isNotBlank() == true) {
+                        append(" | ${userMapping.officeCity}")
+                    }
+                }
+                
+                Text(
+                    text = enhancedText,
+                    style = ElementTheme.typography.fontBodyLgRegular,
+                    color = ElementTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth()
+                )
+            } else {
+                // Fallback to original format
+                user.displayName?.let {
+                    Text(
+                        text = it,
+                        style = ElementTheme.typography.fontHeadingLgBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                .fillMaxWidth()
+                    )
+                }
+                Text(
+                    text = user.userId.toString(),
+                    style = ElementTheme.typography.fontBodyLgRegular,
+                    color = ElementTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth()
+                )
             }
-            Text(
-                text = user.userId.toString(),
-                style = ElementTheme.typography.fontBodyLgRegular,
-                color = ElementTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-            )
             Spacer(modifier = Modifier.height(32.dp))
 
             for (actionState in actions) {

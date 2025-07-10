@@ -18,4 +18,5 @@ dependencies {
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.designsystem)
     implementation(projects.libraries.matrix.api)
+    implementation(projects.libraries.usersearch.api)
 }

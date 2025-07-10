@@ -10,6 +10,7 @@ import extension.setupAnvil
 plugins {
     id("io.element.android-library")
     id("kotlin-parcelize")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -32,6 +33,12 @@ dependencies {
     implementation(platform(libs.network.retrofit.bom))
     implementation(libs.network.retrofit)
     implementation(libs.network.retrofit.converter.serialization)
+    
+    // JSON serialization
+    implementation(libs.serialization.json)
+    
+    // OkHttp for direct API calls
+    implementation(libs.network.okhttp)
     
     // Keep other dependencies
     implementation("androidx.work:work-runtime-ktx:2.9.0")
