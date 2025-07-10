@@ -17,7 +17,6 @@ import dagger.assisted.AssistedInject
 import io.element.android.anvilannotations.ContributesNode
 import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.inputs
-import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.encryption.IdentityPasswordResetHandle
 
@@ -25,17 +24,14 @@ import io.element.android.libraries.matrix.api.encryption.IdentityPasswordResetH
 class ResetIdentityPasswordNode @AssistedInject constructor(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    coroutineDispatchers: CoroutineDispatchers,
+    private val presenterFactory: ResetIdentityPasswordPresenter.Factory,
 ) : Node(buildContext, plugins = plugins) {
     data class Inputs(val handle: IdentityPasswordResetHandle) : NodeInputs
 
-    private val presenter = ResetIdentityPasswordPresenter(
-        identityPasswordResetHandle = inputs<Inputs>().handle,
-        dispatchers = coroutineDispatchers
-    )
-
     @Composable
     override fun View(modifier: Modifier) {
+        val handle = inputs<Inputs>().handle
+        val presenter = presenterFactory.create(handle)
         val state = presenter.present()
         ResetIdentityPasswordView(
             state = state,

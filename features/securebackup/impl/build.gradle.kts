@@ -35,8 +35,13 @@ dependencies {
     implementation(projects.libraries.oidc.api)
     implementation(projects.libraries.uiStrings)
     implementation(projects.libraries.testtags)
+    implementation(projects.features.customauth.impl)
     api(libs.statemachine)
     api(projects.features.securebackup.api)
+    
+    // AWS Cognito dependencies for user attribute access
+    implementation("com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.75.0")
+    implementation("com.amazonaws:aws-android-sdk-core:2.75.0")
 
     testImplementation(libs.test.junit)
     testImplementation(libs.coroutines.test)

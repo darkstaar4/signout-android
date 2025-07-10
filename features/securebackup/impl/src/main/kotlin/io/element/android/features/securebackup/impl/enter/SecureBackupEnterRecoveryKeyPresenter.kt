@@ -90,18 +90,28 @@ class SecureBackupEnterRecoveryKeyPresenter @Inject constructor(
                 android.util.Log.d("SecureBackupEnter", "New backup state: ${encryptionService.backupStateStateFlow.value}")
                 android.util.Log.d("SecureBackupEnter", "New recovery state: ${encryptionService.recoveryStateStateFlow.value}")
                 
-                // If backup state is still UNKNOWN, try to enable backups
+                // If backup state is still UNKNOWN after recovery, try to enable backups
+                // This should help synchronize the backup state properly
                 if (encryptionService.backupStateStateFlow.value == io.element.android.libraries.matrix.api.encryption.BackupState.UNKNOWN) {
                     android.util.Log.d("SecureBackupEnter", "Backup state still UNKNOWN, attempting to enable backups")
-                    val enableBackupResult = encryptionService.enableBackups()
-                    if (enableBackupResult.isSuccess) {
+                    val enableResult = encryptionService.enableBackups()
+                    if (enableResult.isSuccess) {
                         android.util.Log.d("SecureBackupEnter", "enableBackups() succeeded")
-                        android.util.Log.d("SecureBackupEnter", "Final backup state: ${encryptionService.backupStateStateFlow.value}")
-                        android.util.Log.d("SecureBackupEnter", "Final recovery state: ${encryptionService.recoveryStateStateFlow.value}")
+                        android.util.Log.d("SecureBackupEnter", "Updated backup state: ${encryptionService.backupStateStateFlow.value}")
+                        android.util.Log.d("SecureBackupEnter", "Updated recovery state: ${encryptionService.recoveryStateStateFlow.value}")
                     } else {
-                        android.util.Log.w("SecureBackupEnter", "enableBackups() failed: ${enableBackupResult.exceptionOrNull()?.message}")
+                        val error = enableResult.exceptionOrNull()
+                        android.util.Log.w("SecureBackupEnter", "enableBackups() failed: ${error?.message}")
+                        // BackupExistsOnServer is expected in this case, so we don't treat it as a failure
+                        if (error?.message?.contains("BackupExistsOnServer") == true) {
+                            android.util.Log.d("SecureBackupEnter", "BackupExistsOnServer error is expected, continuing...")
+                        }
                     }
                 }
+                
+                // Final state check
+                android.util.Log.d("SecureBackupEnter", "Final backup state: ${encryptionService.backupStateStateFlow.value}")
+                android.util.Log.d("SecureBackupEnter", "Final recovery state: ${encryptionService.recoveryStateStateFlow.value}")
                 
                 Unit // Return Unit for runCatchingUpdatingState
             } else {

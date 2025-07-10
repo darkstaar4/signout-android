@@ -12,4 +12,5 @@ sealed interface SecureBackupRootEvents {
     data object EnableKeyStorage : SecureBackupRootEvents
     data object DisplayKeyStorageDisabledError : SecureBackupRootEvents
     data object DismissDialog : SecureBackupRootEvents
+    data object VerifyDevice : SecureBackupRootEvents
 }

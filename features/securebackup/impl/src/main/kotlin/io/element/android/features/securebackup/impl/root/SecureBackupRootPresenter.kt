@@ -27,6 +27,7 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatch
 import io.element.android.libraries.designsystem.utils.snackbar.collectSnackbarMessageAsState
 import io.element.android.libraries.matrix.api.encryption.BackupState
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
+import io.element.android.libraries.matrix.api.verification.SessionVerificationService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -34,6 +35,7 @@ import javax.inject.Inject
 
 class SecureBackupRootPresenter @Inject constructor(
     private val encryptionService: EncryptionService,
+    private val sessionVerificationService: SessionVerificationService,
     private val buildMeta: BuildMeta,
     private val snackbarDispatcher: SnackbarDispatcher,
 ) : Presenter<SecureBackupRootState> {
@@ -44,14 +46,17 @@ class SecureBackupRootPresenter @Inject constructor(
 
         val backupState by encryptionService.backupStateStateFlow.collectAsState()
         val recoveryState by encryptionService.recoveryStateStateFlow.collectAsState()
+        val sessionVerifiedStatus by sessionVerificationService.sessionVerifiedStatus.collectAsState()
         val enableAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         var displayKeyStorageDisabledError by remember { mutableStateOf(false) }
+        var onDeviceVerificationClick: (() -> Unit)? by remember { mutableStateOf(null) }
         
         // Add debugging for state changes
         android.util.Log.d("SecureBackupRoot", "Current states - backup: $backupState, recovery: $recoveryState")
         
         Timber.tag(loggerTagRoot.value).d("backupState: $backupState")
         Timber.tag(loggerTagRoot.value).d("recoveryState: $recoveryState")
+        Timber.tag(loggerTagRoot.value).d("sessionVerifiedStatus: $sessionVerifiedStatus")
 
         val doesBackupExistOnServerAction: MutableState<AsyncData<Boolean>> = remember { mutableStateOf(AsyncData.Uninitialized) }
 
@@ -70,6 +75,10 @@ class SecureBackupRootPresenter @Inject constructor(
                     displayKeyStorageDisabledError = false
                 }
                 SecureBackupRootEvents.DisplayKeyStorageDisabledError -> displayKeyStorageDisabledError = true
+                SecureBackupRootEvents.VerifyDevice -> {
+                    // Trigger device verification callback
+                    onDeviceVerificationClick?.invoke()
+                }
             }
         }
 
@@ -78,6 +87,7 @@ class SecureBackupRootPresenter @Inject constructor(
             backupState = backupState,
             doesBackupExistOnServer = doesBackupExistOnServerAction.value,
             recoveryState = recoveryState,
+            sessionVerifiedStatus = sessionVerifiedStatus,
             appName = buildMeta.applicationName,
             displayKeyStorageDisabledError = displayKeyStorageDisabledError,
             snackbarMessage = snackbarMessage,

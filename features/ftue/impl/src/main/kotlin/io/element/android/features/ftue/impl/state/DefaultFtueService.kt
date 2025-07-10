@@ -114,8 +114,8 @@ class DefaultFtueService @Inject constructor(
     }
 
     private suspend fun canSkipVerification(): Boolean {
-        // Always skip session verification since users are already authenticated via Cognito
-        return true
+        // Re-enable session verification for proper device verification flow
+        return false
     }
 
     private suspend fun needsAnalyticsOptIn(): Boolean {

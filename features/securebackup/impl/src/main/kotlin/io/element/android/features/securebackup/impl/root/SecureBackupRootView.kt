@@ -43,6 +43,7 @@ fun SecureBackupRootView(
     onDisableClick: () -> Unit,
     onConfirmRecoveryKeyClick: () -> Unit,
     onLearnMoreClick: () -> Unit,
+    onDeviceVerificationClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
@@ -53,6 +54,28 @@ fun SecureBackupRootView(
         title = stringResource(id = CommonStrings.common_encryption),
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) {
+        // Device Verification section
+        if (state.needsDeviceVerification) {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = "Verify this device",
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        text = "You need to verify this device for access to historical messages.",
+                    )
+                },
+                trailingContent = ListItemContent.Badge,
+                onClick = {
+                    state.eventSink.invoke(SecureBackupRootEvents.VerifyDevice)
+                    onDeviceVerificationClick()
+                },
+            )
+            HorizontalDivider()
+        }
+        
         ListItem(
             headlineContent = {
                 Text(
@@ -245,5 +268,6 @@ internal fun SecureBackupRootViewPreview(
         onDisableClick = {},
         onConfirmRecoveryKeyClick = {},
         onLearnMoreClick = {},
+        onDeviceVerificationClick = {},
     )
 }

@@ -46,6 +46,7 @@ import io.element.android.libraries.designsystem.theme.components.TopAppBar
 import io.element.android.libraries.matrix.api.verification.SessionVerificationData
 import io.element.android.libraries.matrix.api.verification.VerificationRequest
 import io.element.android.libraries.ui.strings.CommonStrings
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +58,14 @@ fun OutgoingVerificationView(
     modifier: Modifier = Modifier,
 ) {
     val step = state.step
+    
+    // Handle Exit state by automatically calling onBack
+    LaunchedEffect(step) {
+        if (step is Step.Exit) {
+            onBack()
+        }
+    }
+    
     fun cancelOrResetFlow() {
         when (step) {
             is Step.Canceled -> state.eventSink(OutgoingVerificationViewEvents.Reset)

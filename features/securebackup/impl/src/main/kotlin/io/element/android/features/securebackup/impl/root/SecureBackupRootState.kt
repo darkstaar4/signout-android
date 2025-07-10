@@ -12,12 +12,14 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.matrix.api.encryption.BackupState
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
+import io.element.android.libraries.matrix.api.verification.SessionVerifiedStatus
 
 data class SecureBackupRootState(
     val enableAction: AsyncAction<Unit>,
     val backupState: BackupState,
     val doesBackupExistOnServer: AsyncData<Boolean>,
     val recoveryState: RecoveryState,
+    val sessionVerifiedStatus: SessionVerifiedStatus,
     val appName: String,
     val displayKeyStorageDisabledError: Boolean,
     val snackbarMessage: SnackbarMessage?,
@@ -34,4 +36,7 @@ data class SecureBackupRootState(
             BackupState.WAITING_FOR_SYNC,
             BackupState.DISABLING -> false
         }
+        
+    val needsDeviceVerification: Boolean
+        get() = sessionVerifiedStatus == SessionVerifiedStatus.NotVerified
 }

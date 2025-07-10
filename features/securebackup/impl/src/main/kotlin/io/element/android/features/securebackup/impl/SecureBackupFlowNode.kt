@@ -32,11 +32,18 @@ import io.element.android.libraries.architecture.appyx.canPop
 import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.di.SessionScope
 import kotlinx.parcelize.Parcelize
+import io.element.android.libraries.matrix.api.verification.SessionVerificationService
+import javax.inject.Inject
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
 
 @ContributesNode(SessionScope::class)
 class SecureBackupFlowNode @AssistedInject constructor(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
+    private val sessionVerificationService: SessionVerificationService,
+    @SessionCoroutineScope private val sessionCoroutineScope: CoroutineScope,
 ) : BaseFlowNode<SecureBackupFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = when (plugins.filterIsInstance<SecureBackupEntryPoint.Params>().first().initialElement) {
@@ -90,6 +97,13 @@ class SecureBackupFlowNode @AssistedInject constructor(
 
                     override fun onConfirmRecoveryKeyClick() {
                         backstack.push(NavTarget.EnterRecoveryKey)
+                    }
+                    
+                    override fun onDeviceVerificationClick() {
+                        // Trigger session verification service to start device verification
+                        sessionCoroutineScope.launch {
+                            sessionVerificationService.requestCurrentSessionVerification()
+                        }
                     }
                 }
                 createNode<SecureBackupRootNode>(buildContext, listOf(callback))

@@ -13,6 +13,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.matrix.api.encryption.BackupState
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
+import io.element.android.libraries.matrix.api.verification.SessionVerifiedStatus
 
 open class SecureBackupRootStateProvider : PreviewParameterProvider<SecureBackupRootState> {
     override val values: Sequence<SecureBackupRootState>
@@ -47,6 +48,11 @@ open class SecureBackupRootStateProvider : PreviewParameterProvider<SecureBackup
                 recoveryState = RecoveryState.ENABLED,
                 displayKeyStorageDisabledError = true,
             ),
+            aSecureBackupRootState(
+                backupState = BackupState.ENABLED,
+                recoveryState = RecoveryState.ENABLED,
+                sessionVerifiedStatus = SessionVerifiedStatus.NotVerified,
+            ),
         )
 }
 
@@ -55,6 +61,7 @@ fun aSecureBackupRootState(
     backupState: BackupState = BackupState.UNKNOWN,
     doesBackupExistOnServer: AsyncData<Boolean> = AsyncData.Uninitialized,
     recoveryState: RecoveryState = RecoveryState.UNKNOWN,
+    sessionVerifiedStatus: SessionVerifiedStatus = SessionVerifiedStatus.Verified,
     displayKeyStorageDisabledError: Boolean = false,
     snackbarMessage: SnackbarMessage? = null,
 ) = SecureBackupRootState(
@@ -62,6 +69,7 @@ fun aSecureBackupRootState(
     backupState = backupState,
     doesBackupExistOnServer = doesBackupExistOnServer,
     recoveryState = recoveryState,
+    sessionVerifiedStatus = sessionVerifiedStatus,
     appName = "Element",
     displayKeyStorageDisabledError = displayKeyStorageDisabledError,
     snackbarMessage = snackbarMessage,

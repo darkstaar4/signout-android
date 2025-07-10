@@ -8,7 +8,7 @@
   <string name="screen_chat_backup_key_storage_toggle_description">"Upload keys from this device"</string>
   <string name="screen_chat_backup_key_storage_toggle_title">"Allow key storage"</string>
   <string name="screen_chat_backup_recovery_action_change">"Change recovery key"</string>
-  <string name="screen_chat_backup_recovery_action_change_description">"Recover your cryptographic identity and message history with a recovery key if you’ve lost all your existing devices."</string>
+  <string name="screen_chat_backup_recovery_action_change_description">"Recover your cryptographic identity and message history with a recovery key if you've lost all your existing devices."</string>
   <string name="screen_chat_backup_recovery_action_confirm">"Enter recovery key"</string>
   <string name="screen_chat_backup_recovery_action_confirm_description">"Your key storage is currently out of sync."</string>
   <string name="screen_chat_backup_recovery_action_setup">"Set up recovery"</string>
@@ -16,16 +16,16 @@
   <string name="screen_create_new_recovery_key_list_item_1">"Open %1$s in a desktop device"</string>
   <string name="screen_create_new_recovery_key_list_item_2">"Sign into your account again"</string>
   <string name="screen_create_new_recovery_key_list_item_3">"When asked to verify your device, select %1$s"</string>
-  <string name="screen_create_new_recovery_key_list_item_3_reset_all">"“Reset all”"</string>
+  <string name="screen_create_new_recovery_key_list_item_3_reset_all">""Reset all""</string>
   <string name="screen_create_new_recovery_key_list_item_4">"Follow the instructions to create a new recovery key"</string>
   <string name="screen_create_new_recovery_key_list_item_5">"Save your new recovery key in a password manager or encrypted note"</string>
   <string name="screen_create_new_recovery_key_title">"Reset the encryption for your account using another device"</string>
   <string name="screen_encryption_reset_action_continue_reset">"Continue reset"</string>
   <string name="screen_encryption_reset_bullet_1">"Your account details, contacts, preferences, and chat list will be kept"</string>
-  <string name="screen_encryption_reset_bullet_2">"You will lose any message history that’s stored only on the server"</string>
+  <string name="screen_encryption_reset_bullet_2">"You will lose any message history that's stored only on the server"</string>
   <string name="screen_encryption_reset_bullet_3">"You will need to verify all your existing devices and contacts again"</string>
-  <string name="screen_encryption_reset_footer">"Only reset your identity if you don’t have access to another signed-in device and you’ve lost your recovery key."</string>
-  <string name="screen_encryption_reset_title">"Can\'t confirm? You’ll need to reset your identity."</string>
+  <string name="screen_encryption_reset_footer">"Only reset your identity if you don't have access to another signed-in device and you've lost your recovery key."</string>
+  <string name="screen_encryption_reset_title">"Can\'t confirm? You'll need to reset your identity."</string>
   <string name="screen_key_backup_disable_confirmation_action_turn_off">"Turn off"</string>
   <string name="screen_key_backup_disable_confirmation_description">"You will lose your encrypted messages if you are signed out of all devices."</string>
   <string name="screen_key_backup_disable_confirmation_title">"Are you sure you want to turn off backup?"</string>
@@ -55,7 +55,7 @@
   <string name="screen_recovery_key_save_title">"Save your recovery key somewhere safe"</string>
   <string name="screen_recovery_key_setup_confirmation_description">"You will not be able to access your new recovery key after this step."</string>
   <string name="screen_recovery_key_setup_confirmation_title">"Have you saved your recovery key?"</string>
-  <string name="screen_recovery_key_setup_description">"Your key storage is protected by a recovery key. If you need a new recovery key after setup, you can recreate it by selecting ‘Change recovery key’."</string>
+  <string name="screen_recovery_key_setup_description">"Your key storage is protected by a recovery key. If you need a new recovery key after setup, you can recreate it by selecting 'Change recovery key'."</string>
   <string name="screen_recovery_key_setup_generate_key">"Generate your recovery key"</string>
   <string name="screen_recovery_key_setup_generate_key_description">"Do not share this with anyone!"</string>
   <string name="screen_recovery_key_setup_success">"Recovery setup successful"</string>
@@ -63,7 +63,7 @@
   <string name="screen_reset_encryption_confirmation_alert_action">"Yes, reset now"</string>
   <string name="screen_reset_encryption_confirmation_alert_subtitle">"This process is irreversible."</string>
   <string name="screen_reset_encryption_confirmation_alert_title">"Are you sure you want to reset your identity?"</string>
-  <string name="screen_reset_encryption_password_error">"An unknown error happened. Please check your account password is correct and try again."</string>
+  <string name="screen_reset_encryption_password_error">"Invalid account password. Please check your password and try again."</string>
   <string name="screen_reset_encryption_password_placeholder">"Enter…"</string>
   <string name="screen_reset_encryption_password_subtitle">"Confirm that you want to reset your identity."</string>
   <string name="screen_reset_encryption_password_title">"Enter your account password to continue"</string>
