@@ -230,7 +230,7 @@
   <string name="dialog_title_warning">"Внимание"</string>
   <string name="event_shield_reason_sent_in_clear">"Без шифроване"</string>
   <string name="invite_friends_rich_title">"🔐️ Присъединете се към мен в %1$s"</string>
-  <string name="invite_friends_text">"Хей, говорете с мен в %1$s: %2$s"</string>
+  <string name="invite_friends_text">"Хей, говорете с мен в SignOut: https://www.getsignout.com/download."</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="screen_pinned_timeline_screen_title_empty">"Закачени съобщения"</string>
   <string name="screen_share_location_title">"Споделяне на местоположение"</string>

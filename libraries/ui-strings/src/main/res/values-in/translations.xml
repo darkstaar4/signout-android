@@ -350,7 +350,7 @@ Apakah Anda yakin ingin melanjutkan?"</string>
   <string name="event_shield_reason_unsigned_device">"Dienkripsi oleh perangkat yang tidak diverifikasi oleh pemiliknya."</string>
   <string name="event_shield_reason_unverified_identity">"Dienkripsi oleh pengguna yang tidak terverifikasi."</string>
   <string name="invite_friends_rich_title">"🔐️ Bergabunglah dengan saya di %1$s"</string>
-  <string name="invite_friends_text">"Hai, bicaralah dengan saya di %1$s: %2$s"</string>
+  <string name="invite_friends_text">"Hey, chat with me on SignOut: https://www.getsignout.com/download."</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="preference_rageshake">"Rageshake untuk melaporkan kutu"</string>
   <string name="screen_create_poll_option_accessibility_label">"%1$s: %2$s"</string>

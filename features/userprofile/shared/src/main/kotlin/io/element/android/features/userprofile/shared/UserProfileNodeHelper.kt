@@ -35,7 +35,7 @@ class UserProfileNodeHelper(
         context.startSharePlainTextIntent(
             activityResultLauncher = null,
             chooserTitle = context.getString(CommonStrings.action_share),
-            text = "https://www.signout.com/download",
+            text = "https://www.getsignout.com/download",
             noActivityFoundMessage = context.getString(R.string.error_no_compatible_app_found)
         )
     }
