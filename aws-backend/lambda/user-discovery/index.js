@@ -43,8 +43,8 @@ exports.handler = async (event) => {
         // Extract username from Matrix ID (e.g., @nbaig:signout.io -> nbaig)
         const username = matrix_user_id.replace(/^@/, '').split(':')[0];
         
-        // Search for user in Cognito User Pool
-        const user = await findUserByUsername(username);
+        // Search for user in Cognito User Pool by preferred_username
+        const user = await findUserByPreferredUsername(username);
         
         if (!user) {
             return {
@@ -78,19 +78,67 @@ exports.handler = async (event) => {
     }
 };
 
-async function findUserByUsername(username) {
+async function findUserByPreferredUsername(username) {
     try {
-        const params = {
+        // First try to find user by preferred_username using listUsers with filter
+        const filterParams = {
             UserPoolId: USER_POOL_ID,
-            Username: username
+            Filter: `preferred_username = "${username}"`,
+            Limit: 1
         };
         
-        const result = await cognito.adminGetUser(params).promise();
-        return result;
+        console.log('Searching by preferred_username filter:', filterParams.Filter);
+        const filterResult = await cognito.listUsers(filterParams).promise();
+        
+        if (filterResult.Users && filterResult.Users.length > 0) {
+            const foundUser = filterResult.Users[0];
+            console.log('Found user by preferred_username filter:', foundUser.Username);
+            
+            // Get full user details with all attributes using adminGetUser
+            try {
+                const fullUserParams = {
+                    UserPoolId: USER_POOL_ID,
+                    Username: foundUser.Username
+                };
+                
+                console.log('Getting full user details for:', foundUser.Username);
+                const fullUserResult = await cognito.adminGetUser(fullUserParams).promise();
+                console.log('Retrieved full user details with', fullUserResult.UserAttributes?.length || 0, 'attributes');
+                return fullUserResult;
+            } catch (fullUserError) {
+                console.log('Failed to get full user details, using listUsers result:', fullUserError.message);
+                return foundUser;
+            }
+        }
+        
+        // If filter search fails, try adminGetUser with the username directly
+        // (in case the username in Cognito matches the preferred_username)
+        try {
+            const directParams = {
+                UserPoolId: USER_POOL_ID,
+                Username: username
+            };
+            
+            console.log('Trying direct adminGetUser with username:', username);
+            const directResult = await cognito.adminGetUser(directParams).promise();
+            console.log('Found user by direct username lookup:', directResult.Username);
+            return directResult;
+        } catch (directError) {
+            if (directError.code !== 'UserNotFoundException') {
+                console.log('Direct adminGetUser failed with non-404 error:', directError.message);
+            }
+        }
+        
+        // If both methods fail, return null
+        console.log('User not found by preferred_username or direct username lookup');
+        return null;
+        
     } catch (error) {
         if (error.code === 'UserNotFoundException') {
+            console.log('User not found:', username);
             return null;
         }
+        console.error('Error in findUserByPreferredUsername:', error);
         throw error;
     }
 }
@@ -108,9 +156,12 @@ function convertCognitoUser(cognitoUser, matrixUserId) {
     // Extract Matrix username from Matrix ID
     const matrixUsername = matrixUserId.replace(/^@/, '').split(':')[0];
     
+    // Use preferred_username if available, otherwise use the extracted matrix username
+    const preferredUsername = attributes.preferred_username || matrixUsername;
+    
     return {
         matrix_user_id: matrixUserId,
-        matrix_username: matrixUsername,
+        matrix_username: preferredUsername,
         cognito_username: cognitoUser.Username,
         given_name: attributes.given_name || '',
         family_name: attributes.family_name || '',

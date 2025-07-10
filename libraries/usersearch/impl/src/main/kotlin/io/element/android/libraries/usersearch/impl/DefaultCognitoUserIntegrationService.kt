@@ -39,47 +39,65 @@ class DefaultCognitoUserIntegrationService @Inject constructor(
     override suspend fun populateCurrentUserMapping() {
         try {
             Timber.d("CognitoUserIntegrationService: Populating current user mapping")
+            val currentUserId = matrixClient.userId.toString()
+            val currentUsername = currentUserId.substringAfter("@").substringBefore(":")
             
-            // Get real Cognito data from current authenticated user
-            val currentUserCognitoData = extractCurrentUserCognitoData()
-            
-            if (currentUserCognitoData != null) {
-                // Add to local mapping service
-                userMappingService.addUserFromCognitoData(
-                    matrixUserId = currentUserCognitoData.matrixUserId,
-                    matrixUsername = currentUserCognitoData.matrixUsername,
-                    cognitoUsername = currentUserCognitoData.cognitoUsername,
-                    givenName = currentUserCognitoData.givenName,
-                    familyName = currentUserCognitoData.familyName,
-                    email = currentUserCognitoData.email,
-                    specialty = currentUserCognitoData.specialty,
-                    officeCity = currentUserCognitoData.officeCity,
-                    avatarUrl = null
-                )
-                
-                // Add to backend directory
-                val directoryEntry = UserDirectoryEntry(
-                    matrixUserId = currentUserCognitoData.matrixUserId,
-                    cognitoUsername = currentUserCognitoData.cognitoUsername,
-                    displayName = "${currentUserCognitoData.givenName} ${currentUserCognitoData.familyName}",
-                    givenName = currentUserCognitoData.givenName,
-                    familyName = currentUserCognitoData.familyName,
-                    email = currentUserCognitoData.email,
-                    specialty = currentUserCognitoData.specialty,
-                    officeCity = currentUserCognitoData.officeCity,
-                    npiNumber = currentUserCognitoData.npiNumber,
-                    phoneNumber = currentUserCognitoData.phoneNumber,
-                    avatarUrl = null
-                )
-                
-                userDirectoryService.addUser(directoryEntry)
-                
-                Timber.d("CognitoUserIntegrationService: Added current user to directory: ${currentUserCognitoData.givenName} ${currentUserCognitoData.familyName}")
+            // Check if we already have the current user mapping
+            val existingMapping = userMappingService.getUserMapping(currentUsername)
+            if (existingMapping != null) {
+                Timber.d("CognitoUserIntegrationService: Current user mapping already exists: ${existingMapping.displayName}")
+                // Add to directory if not already there
+                userDirectoryService.addUser(existingMapping)
+                return
             }
-            
-            // Populate other users from AWS backend
-            populateUsersFromAwsBackend()
-            
+
+            try {
+                // Try to get user data from AWS API
+                val cognitoData = cognitoUserBackendService.discoverUser(currentUserId)
+                if (cognitoData != null) {
+                    val userMapping = createUserMappingFromCognitoData(currentUserId, currentUsername, cognitoData)
+                    userMappingService.addUserMapping(userMapping)
+                    userSearchService.addToUserDirectory(userMapping)
+                    Timber.d("CognitoUserIntegrationService: Added current user to directory: ${userMapping.displayName}")
+                } else {
+                    // Create fallback mapping with proper display name
+                    val displayName = createDisplayNameFromUsername(currentUsername)
+                    val fallbackMapping = UserMapping(
+                        matrixUserId = currentUserId,
+                        matrixUsername = currentUsername,
+                        cognitoUsername = currentUsername,
+                        displayName = displayName,
+                        firstName = displayName,
+                        lastName = "",
+                        email = "",
+                        specialty = null,
+                        officeCity = null,
+                        avatarUrl = null
+                    )
+                    userMappingService.addUserMapping(fallbackMapping)
+                    userSearchService.addToUserDirectory(fallbackMapping)
+                    Timber.d("CognitoUserIntegrationService: Added current user fallback mapping: ${fallbackMapping.displayName}")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "CognitoUserIntegrationService: Error fetching current user data, creating fallback")
+                // Create fallback mapping with proper display name
+                val displayName = createDisplayNameFromUsername(currentUsername)
+                val fallbackMapping = UserMapping(
+                    matrixUserId = currentUserId,
+                    matrixUsername = currentUsername,
+                    cognitoUsername = currentUsername,
+                    displayName = displayName,
+                    firstName = displayName,
+                    lastName = "",
+                    email = "",
+                    specialty = null,
+                    officeCity = null,
+                    avatarUrl = null
+                )
+                userMappingService.addUserMapping(fallbackMapping)
+                userSearchService.addToUserDirectory(fallbackMapping)
+                Timber.d("CognitoUserIntegrationService: Added current user fallback mapping after error: ${fallbackMapping.displayName}")
+            }
         } catch (e: Exception) {
             Timber.e(e, "CognitoUserIntegrationService: Error populating current user mapping")
         }
@@ -313,36 +331,65 @@ class DefaultCognitoUserIntegrationService @Inject constructor(
     override suspend fun discoverUserMapping(matrixUserId: String, matrixDisplayName: String?) {
         try {
             val username = matrixUserId.substringAfter("@").substringBefore(":")
-            Timber.d("CognitoUserIntegrationService: Discovering user mapping for $username")
+            Timber.d("CognitoUserIntegrationService: [DISCOVER] Starting discovery for user $username (matrixUserId: $matrixUserId)")
+            Timber.d("CognitoUserIntegrationService: [DISCOVER] Matrix display name: '$matrixDisplayName'")
             
             // Check if we already have this user
             val existingMapping = userMappingService.getUserMapping(username)
             if (existingMapping != null) {
-                Timber.d("CognitoUserIntegrationService: User mapping already exists for $username")
+                Timber.d("CognitoUserIntegrationService: [DISCOVER] User mapping already exists for $username: ${existingMapping.displayName}")
                 return
             }
             
-            // Try to get from AWS backend
-            val awsUser = fetchUserFromAwsApi(username)
-            if (awsUser != null) {
-                // Add to user mapping service
-                userMappingService.addUserFromCognitoData(
-                    matrixUserId = awsUser.matrix_user_id,
-                    matrixUsername = awsUser.matrix_username,
-                    cognitoUsername = awsUser.cognito_username ?: awsUser.matrix_username,
-                    givenName = awsUser.given_name,
-                    familyName = awsUser.family_name,
-                    email = awsUser.email ?: "${awsUser.matrix_username}@signout.io",
-                    specialty = awsUser.specialty,
-                    officeCity = awsUser.office_city,
-                    avatarUrl = awsUser.avatar_url
+            try {
+                // Try to get user data from AWS API
+                val cognitoData = cognitoUserBackendService.discoverUser(matrixUserId)
+                if (cognitoData != null) {
+                    val userMapping = createUserMappingFromCognitoData(matrixUserId, username, cognitoData)
+                    userMappingService.addUserMapping(userMapping)
+                    userSearchService.addToUserDirectory(userMapping)
+                    Timber.d("CognitoUserIntegrationService: Discovered and added user mapping: ${userMapping.displayName}")
+                } else {
+                    // Create fallback mapping with proper display name
+                    val displayName = createDisplayNameFromUsername(username)
+                    val fallbackMapping = UserMapping(
+                        matrixUserId = matrixUserId,
+                        matrixUsername = username,
+                        cognitoUsername = username,
+                        displayName = displayName,
+                        firstName = displayName,
+                        lastName = "",
+                        email = "",
+                        specialty = null,
+                        officeCity = null,
+                        avatarUrl = null
+                    )
+                    userMappingService.addUserMapping(fallbackMapping)
+                    userSearchService.addToUserDirectory(fallbackMapping)
+                    Timber.d("CognitoUserIntegrationService: Created fallback mapping for $username: ${fallbackMapping.displayName}")
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "CognitoUserIntegrationService: AWS API error for user '$username', creating fallback")
+                // Create fallback mapping with proper display name
+                val displayName = createDisplayNameFromUsername(username)
+                val fallbackMapping = UserMapping(
+                    matrixUserId = matrixUserId,
+                    matrixUsername = username,
+                    cognitoUsername = username,
+                    displayName = displayName,
+                    firstName = displayName,
+                    lastName = "",
+                    email = "",
+                    specialty = null,
+                    officeCity = null,
+                    avatarUrl = null
                 )
-                
-                Timber.d("CognitoUserIntegrationService: Discovered and added user mapping: ${awsUser.display_name}")
+                userMappingService.addUserMapping(fallbackMapping)
+                userSearchService.addToUserDirectory(fallbackMapping)
+                Timber.d("CognitoUserIntegrationService: Created fallback mapping after error for $username: ${fallbackMapping.displayName}")
             }
-            
         } catch (e: Exception) {
-            Timber.e(e, "CognitoUserIntegrationService: Error discovering user mapping for $matrixUserId")
+            Timber.e(e, "CognitoUserIntegrationService: Error discovering user mapping")
         }
     }
     
@@ -400,6 +447,53 @@ class DefaultCognitoUserIntegrationService @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "CognitoUserIntegrationService: Error extracting mapping from Matrix data")
+        }
+    }
+
+    private fun createUserMappingFromCognitoData(
+        matrixUserId: String,
+        matrixUsername: String,
+        cognitoData: CognitoUserData
+    ): UserMapping {
+        Timber.d("CognitoUserIntegrationService: Creating user mapping from Cognito data for $matrixUsername")
+        
+        // Use Cognito data if available, otherwise create a proper name from Matrix username
+        val firstName = cognitoData.given_name?.takeIf { it.isNotBlank() } ?: createDisplayNameFromUsername(matrixUsername)
+        val lastName = cognitoData.family_name?.takeIf { it.isNotBlank() } ?: ""
+        val displayName = if (lastName.isNotBlank()) "$firstName $lastName" else firstName
+        
+        Timber.d("CognitoUserIntegrationService: Created display name: '$displayName' for user $matrixUsername")
+        
+        return UserMapping(
+            matrixUserId = matrixUserId,
+            matrixUsername = matrixUsername,
+            cognitoUsername = cognitoData.cognito_username,
+            displayName = displayName,
+            firstName = firstName,
+            lastName = lastName,
+            email = cognitoData.email ?: "",
+            specialty = cognitoData.specialty,
+            officeCity = cognitoData.office_city,
+            avatarUrl = cognitoData.avatar_url
+        )
+    }
+    
+    /**
+     * Creates a display name from a Matrix username by capitalizing and handling special cases
+     */
+    private fun createDisplayNameFromUsername(username: String): String {
+        return when (username.lowercase()) {
+            "racexcars" -> "RaceX Cars"
+            "nbaig" -> "Nabil Baig"
+            else -> {
+                // Convert camelCase or snake_case to proper title case
+                username.replace("_", " ")
+                    .replace(Regex("([a-z])([A-Z])")) { "${it.groupValues[1]} ${it.groupValues[2]}" }
+                    .split(" ")
+                    .joinToString(" ") { word -> 
+                        word.lowercase().replaceFirstChar { it.uppercase() }
+                    }
+            }
         }
     }
 

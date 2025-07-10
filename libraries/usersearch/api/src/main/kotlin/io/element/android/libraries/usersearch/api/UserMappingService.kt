@@ -7,6 +7,8 @@
 
 package io.element.android.libraries.usersearch.api
 
+import kotlinx.coroutines.flow.Flow
+
 /**
  * Data class for user mapping that includes Cognito user information
  */
@@ -48,6 +50,11 @@ interface UserMappingService {
     )
     
     /**
+     * Add user mapping directly
+     */
+    fun addUserMapping(userMapping: UserMapping)
+    
+    /**
      * Search for users by query string
      */
     fun searchUsers(query: String): List<UserMapping>
@@ -66,4 +73,9 @@ interface UserMappingService {
      * Get the count of cached mappings (for optimization checks)
      */
     fun getCachedMappingsCount(): Int
+    
+    /**
+     * Flow that emits when user mappings are added or updated
+     */
+    val userMappingUpdates: Flow<UserMapping>
 } 

@@ -22,6 +22,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 @Serializable
 data class CachedUserMapping(
@@ -49,6 +52,10 @@ class DefaultUserMappingService @Inject constructor(
         private val isInitialized = AtomicBoolean(false)
         private var instanceCounter = 0
         
+        // Shared flow for user mapping updates
+        private val _userMappingUpdates = MutableSharedFlow<UserMapping>()
+        val sharedUserMappingUpdates = _userMappingUpdates.asSharedFlow()
+        
         // Cache settings
         private const val CACHE_EXPIRY_HOURS = 24
         private const val PREFS_NAME = "user_mapping_cache"
@@ -58,6 +65,8 @@ class DefaultUserMappingService @Inject constructor(
     private val instanceId = ++instanceCounter
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
+    
+    override val userMappingUpdates: Flow<UserMapping> = sharedUserMappingUpdates
     
     init {
         Timber.d("UserMappingService: [Instance $instanceId] Created instance")
@@ -109,6 +118,22 @@ class DefaultUserMappingService @Inject constructor(
         cacheUserMapping(matrixUsername, userMapping)
         
         Timber.d("UserMappingService: [Instance $instanceId] Added mapping for $matrixUsername: $displayName")
+        
+        // Emit update
+        _userMappingUpdates.tryEmit(userMapping)
+    }
+    
+    override fun addUserMapping(userMapping: UserMapping) {
+        // Add to shared storage
+        sharedUserMappings[userMapping.matrixUsername] = userMapping
+        
+        // Cache persistently
+        cacheUserMapping(userMapping.matrixUsername, userMapping)
+        
+        Timber.d("UserMappingService: [Instance $instanceId] Added mapping for ${userMapping.matrixUsername}: ${userMapping.displayName}")
+        
+        // Emit update
+        _userMappingUpdates.tryEmit(userMapping)
     }
     
     override fun searchUsers(query: String): List<UserMapping> {

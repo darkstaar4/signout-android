@@ -44,6 +44,7 @@ dependencies {
     implementation(projects.libraries.permissions.noop)
     implementation(projects.libraries.preferences.api)
     implementation(projects.libraries.push.api)
+    implementation(projects.libraries.usersearch.api)
     implementation(projects.features.invite.api)
     implementation(projects.features.networkmonitor.api)
     implementation(projects.features.logout.api)

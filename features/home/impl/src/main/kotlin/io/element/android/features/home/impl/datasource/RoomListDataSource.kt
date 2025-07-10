@@ -17,6 +17,7 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
 import io.element.android.libraries.matrix.api.roomlist.RoomSummary
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +32,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
+import timber.log.Timber
 
 class RoomListDataSource @Inject constructor(
     private val roomListService: RoomListService,
@@ -40,10 +42,12 @@ class RoomListDataSource @Inject constructor(
     @SessionCoroutineScope
     private val sessionCoroutineScope: CoroutineScope,
     private val dateTimeObserver: DateTimeObserver,
+    private val userMappingService: UserMappingService,
 ) {
     init {
         observeNotificationSettings()
         observeDateTimeChanges()
+        observeUserMappingUpdates()
     }
 
     private val _allRooms = MutableSharedFlow<ImmutableList<RoomListRoomSummary>>(replay = 1)
@@ -89,6 +93,16 @@ class RoomListDataSource @Inject constructor(
                     is DateTimeObserver.Event.TimeZoneChanged -> rebuildAllRoomSummaries()
                     is DateTimeObserver.Event.DateChanged -> rebuildAllRoomSummaries()
                 }
+            }
+            .launchIn(sessionCoroutineScope)
+    }
+    
+    private fun observeUserMappingUpdates() {
+        userMappingService.userMappingUpdates
+            .debounce(0.5.seconds)
+            .onEach { userMapping ->
+                Timber.d("RoomListDataSource: User mapping updated for ${userMapping.matrixUsername}, refreshing room list")
+                rebuildAllRoomSummaries()
             }
             .launchIn(sessionCoroutineScope)
     }
