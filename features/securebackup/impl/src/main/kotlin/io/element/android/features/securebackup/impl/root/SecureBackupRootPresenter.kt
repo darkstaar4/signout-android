@@ -46,6 +46,10 @@ class SecureBackupRootPresenter @Inject constructor(
         val recoveryState by encryptionService.recoveryStateStateFlow.collectAsState()
         val enableAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         var displayKeyStorageDisabledError by remember { mutableStateOf(false) }
+        
+        // Add debugging for state changes
+        android.util.Log.d("SecureBackupRoot", "Current states - backup: $backupState, recovery: $recoveryState")
+        
         Timber.tag(loggerTagRoot.value).d("backupState: $backupState")
         Timber.tag(loggerTagRoot.value).d("recoveryState: $recoveryState")
 

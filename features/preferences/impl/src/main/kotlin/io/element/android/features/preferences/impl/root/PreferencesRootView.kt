@@ -112,6 +112,7 @@ fun PreferencesRootView(
             onOpenDeveloperSettings = onOpenDeveloperSettings,
             onSignOutClick = onSignOutClick,
             onDeactivateClick = onDeactivateClick,
+            onSecureBackupClick = onSecureBackupClick,
         )
 
         Footer(
@@ -207,6 +208,7 @@ private fun ColumnScope.GeneralSection(
     onOpenDeveloperSettings: () -> Unit,
     onSignOutClick: () -> Unit,
     onDeactivateClick: () -> Unit,
+    onSecureBackupClick: () -> Unit,
 ) {
     ListItem(
         headlineContent = { Text(stringResource(id = CommonStrings.common_about)) },
@@ -235,6 +237,11 @@ private fun ColumnScope.GeneralSection(
     if (state.showDeveloperSettings) {
         DeveloperPreferencesView(onOpenDeveloperSettings)
     }
+    ListItem(
+        headlineContent = { Text(stringResource(id = CommonStrings.common_encryption)) },
+        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Key())),
+        onClick = onSecureBackupClick,
+    )
     ListItem(
         headlineContent = { Text(stringResource(id = CommonStrings.action_signout)) },
         leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.SignOut())),
