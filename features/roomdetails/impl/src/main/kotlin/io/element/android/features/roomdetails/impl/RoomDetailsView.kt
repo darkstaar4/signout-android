@@ -91,6 +91,13 @@ import io.element.android.services.analyticsproviders.api.trackers.captureIntera
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentList
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import io.element.android.libraries.usersearch.api.UserMapping
 
 @Composable
 fun RoomDetailsView(
@@ -265,11 +272,12 @@ fun RoomDetailsView(
                 onLeaveRoomClick = { state.eventSink(RoomDetailsEvent.LeaveRoom) }
             )
 
-            if (state.showDebugInfo) {
-                DebugInfoSection(
-                    roomId = state.roomId,
-                )
-            }
+            // Internal room ID section removed per user request
+            // if (state.showDebugInfo) {
+            //     DebugInfoSection(
+            //         roomId = state.roomId,
+            //     )
+            // }
         }
     }
 }
@@ -357,14 +365,14 @@ private fun MainActionsSection(
                 )
             }
         }
-        if (state.roomCallState.hasPermissionToJoin()) {
-            // TODO Improve the view depending on all the cases here?
-            MainActionButton(
-                title = stringResource(CommonStrings.action_call),
-                imageVector = CompoundIcons.VideoCall(),
-                onClick = onCall,
-            )
-        }
+        // Call button removed but functionality preserved for future implementation
+        // if (state.roomCallState.hasPermissionToJoin()) {
+        //     MainActionButton(
+        //         title = stringResource(CommonStrings.action_call),
+        //         imageVector = CompoundIcons.VideoCall(),
+        //         onClick = onCall,
+        //     )
+        // }
         if (state.roomType is RoomDetailsType.Room) {
             if (state.canInvite) {
                 MainActionButton(
@@ -435,6 +443,25 @@ private fun DmHeaderSection(
     onSubtitleClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Get enhanced user mapping for the other member
+    val context = LocalContext.current
+    var userMapping by remember { mutableStateOf<UserMapping?>(null) }
+    
+    LaunchedEffect(otherMember.userId) {
+        try {
+            val username = otherMember.userId.value.substringAfter("@").substringBefore(":")
+            // Get the user mapping service - this should be available via dependency injection
+            // For now, we'll use a placeholder that extracts the username without the domain
+            val cleanUsername = username // This will be just "racexcars" without "@racexcars:signout.io"
+            
+            // Try to get enhanced user mapping
+            // This would normally come from the UserMappingService
+            // For now, we'll create a clean subtitle without the domain
+        } catch (e: Exception) {
+            // Fallback to clean username
+        }
+    }
+    
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -447,9 +474,13 @@ private fun DmHeaderSection(
             openAvatarPreview = { url -> openAvatarPreview(me.getBestName(), url) },
             openOtherAvatarPreview = { url -> openAvatarPreview(roomName, url) },
         )
+        
+        // Clean subtitle - remove signout.io domain
+        val cleanSubtitle = otherMember.userId.value.substringAfter("@").substringBefore(":")
+        
         TitleAndSubtitle(
             title = roomName,
-            subtitle = otherMember.userId.value,
+            subtitle = cleanSubtitle, // Now shows just "racexcars" instead of "@racexcars:signout.io"
             onSubtitleClick = onSubtitleClick,
         )
     }
@@ -709,7 +740,7 @@ private fun OtherActionsSection(
         }
         ListItem(
             headlineContent = {
-                Text(stringResource(CommonStrings.action_leave_room))
+                Text("Leave Chat") // Changed from "Leave Room" to "Leave Chat"
             },
             leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Leave())),
             style = ListItemStyle.Destructive,
