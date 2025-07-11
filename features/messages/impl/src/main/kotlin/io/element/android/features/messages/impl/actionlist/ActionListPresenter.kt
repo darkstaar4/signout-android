@@ -202,15 +202,6 @@ class DefaultActionListPresenter @AssistedInject constructor(
             } else if ((timelineItem.content as? TimelineItemEventContentWithAttachment)?.caption.isNullOrBlank().not()) {
                 add(TimelineItemAction.CopyCaption)
             }
-            if (timelineItem.isRemote) {
-                add(TimelineItemAction.CopyLink)
-            }
-            if (isDeveloperModeEnabled) {
-                add(TimelineItemAction.ViewSource)
-            }
-            if (!timelineItem.isMine) {
-                add(TimelineItemAction.ReportContent)
-            }
             if (canRedact) {
                 add(TimelineItemAction.Redact)
             }
