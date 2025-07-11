@@ -8,6 +8,7 @@
 package io.element.android.libraries.usersearch.test
 
 import io.element.android.libraries.usersearch.api.UserRepository
+import io.element.android.libraries.usersearch.api.UserSearchResponse
 import io.element.android.libraries.usersearch.api.UserSearchResultState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -21,6 +22,11 @@ class FakeUserRepository : UserRepository {
     override fun search(query: String): Flow<UserSearchResultState> {
         providedQuery = query
         return flow
+    }
+
+    override suspend fun searchUsers(query: String, limit: Long): UserSearchResponse {
+        providedQuery = query
+        return UserSearchResponse(results = emptyList(), limited = false)
     }
 
     suspend fun emitState(state: UserSearchResultState) {

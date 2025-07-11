@@ -8,244 +8,236 @@
 package io.element.android.libraries.usersearch.impl
 
 import com.squareup.anvil.annotations.ContributesBinding
+import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.MatrixClient
-import io.element.android.libraries.matrix.api.core.MatrixPatterns
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.user.MatrixUser
-import io.element.android.libraries.usersearch.api.CognitoUserIntegrationService
 import io.element.android.libraries.usersearch.api.UserDirectoryService
-import io.element.android.libraries.usersearch.api.UserListDataSource
 import io.element.android.libraries.usersearch.api.UserMapping
 import io.element.android.libraries.usersearch.api.UserMappingService
 import io.element.android.libraries.usersearch.api.UserRepository
+import io.element.android.libraries.usersearch.api.UserSearchResponse
 import io.element.android.libraries.usersearch.api.UserSearchResult
 import io.element.android.libraries.usersearch.api.UserSearchResultState
-import kotlinx.coroutines.delay
+import io.element.android.libraries.usersearch.impl.network.AwsUserSearchService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import javax.inject.Inject
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import javax.inject.Inject
 
 @ContributesBinding(SessionScope::class)
 class MatrixUserRepository @Inject constructor(
-    private val client: MatrixClient,
-    private val dataSource: UserListDataSource,
-    private val userMappingService: UserMappingService,
+    private val matrixClient: MatrixClient,
     private val userDirectoryService: UserDirectoryService,
-    private val cognitoUserIntegrationService: CognitoUserIntegrationService,
+    private val userMappingService: UserMappingService,
+    private val awsUserSearchService: AwsUserSearchService,
+    private val dispatchers: CoroutineDispatchers,
 ) : UserRepository {
-    
-    init {
-        // UserMappingService now initializes automatically in constructor
-        Timber.d("MatrixUserRepository: UserMappingService ready")
-        
-        // Populate current user's Cognito data
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                cognitoUserIntegrationService.populateCurrentUserMapping()
-                Timber.d("MatrixUserRepository: Current user mapping populated")
-            } catch (e: Exception) {
-                Timber.w(e, "MatrixUserRepository: Failed to populate current user mapping")
-            }
-        }
-    }
-    
-    override fun search(query: String): Flow<UserSearchResultState> = flow {
-        val shouldQueryProfile = MatrixPatterns.isUserId(query) && !client.isMe(UserId(query))
-        val shouldFetchSearchResults = query.length >= MINIMUM_SEARCH_LENGTH
-        
-        // For @username searches (without domain), we'll handle them specially
-        val isAtUsernameSearch = query.startsWith("@") && !query.contains(":")
-        
-        if (shouldQueryProfile || shouldFetchSearchResults || isAtUsernameSearch) {
-            emit(UserSearchResultState(isSearching = true, results = emptyList()))
-        }
-        
-        if (shouldFetchSearchResults || isAtUsernameSearch) {
-            val results = fetchSearchResults(query, shouldQueryProfile)
-            emit(results)
-        }
-    }
 
-    private suspend fun fetchSearchResults(query: String, shouldQueryProfile: Boolean): UserSearchResultState {
-        // Debounce
-        delay(DEBOUNCE_TIME_MILLIS)
-        
-        val results = mutableListOf<UserSearchResult>()
+    // Legacy search method for backward compatibility
+    override fun search(query: String): Flow<UserSearchResultState> = flow {
+        emit(UserSearchResultState(results = emptyList(), isSearching = true))
         
         try {
-            Timber.d("MatrixUserRepository: Searching for query: '$query'")
-            
-            // First, search in backend user directory (real Cognito data)
-            val directoryResults = userDirectoryService.searchUsers(query).getOrElse { emptyList() }
-            Timber.d("MatrixUserRepository: Found ${directoryResults.size} users in backend directory for query: '$query'")
-            
-            // Convert directory results to UserSearchResult
-            for (directoryEntry in directoryResults) {
-                try {
-                    // Try to get the Matrix user profile from server
-                    val matrixUser = dataSource.getProfile(UserId(directoryEntry.matrixUserId))
-                    
-                    if (matrixUser != null) {
-                        // Create UserMapping directly from directory entry with enhanced Cognito data
-                        val mapping = UserMapping(
-                            matrixUserId = directoryEntry.matrixUserId,
-                            matrixUsername = directoryEntry.cognitoUsername,
-                            cognitoUsername = directoryEntry.cognitoUsername,
-                            firstName = directoryEntry.givenName,
-                            lastName = directoryEntry.familyName,
-                            displayName = directoryEntry.displayName,
-                            email = directoryEntry.email,
-                            specialty = directoryEntry.specialty,
-                            officeCity = directoryEntry.officeCity,
-                            avatarUrl = directoryEntry.avatarUrl
-                        )
-                        
-                        val enhancedUser = matrixUser.copy(
-                            displayName = directoryEntry.displayName
-                        )
-                        results.add(UserSearchResult(enhancedUser, mapping))
-                        Timber.d("MatrixUserRepository: Found user from backend directory: ${directoryEntry.displayName} (${directoryEntry.matrixUserId})")
-                        Timber.d("MatrixUserRepository: UserMapping specialty: ${mapping?.specialty}, officeCity: ${mapping?.officeCity}")
-                    } else {
-                        // Create offline user from directory data
-                        val offlineUser = MatrixUser(
-                            userId = UserId(directoryEntry.matrixUserId),
-                            displayName = directoryEntry.displayName,
-                            avatarUrl = null
-                        )
-                        val mapping = userMappingService.getUserMapping(directoryEntry.cognitoUsername)
-                        results.add(UserSearchResult(offlineUser, mapping))
-                        Timber.d("MatrixUserRepository: Created offline user from directory: ${directoryEntry.displayName}")
-                    }
-                } catch (e: Exception) {
-                    Timber.w(e, "MatrixUserRepository: Error processing directory entry for ${directoryEntry.matrixUserId}")
-                }
-            }
-            
-            // Fallback: search in local mapping database if no backend results
-            if (results.isEmpty()) {
-                val mappingResults = userMappingService.searchUsers(query)
-                Timber.d("MatrixUserRepository: Fallback to local mappings - found ${mappingResults.size} mappings for query: '$query'")
-            
-                for (mapping in mappingResults) {
-                    try {
-                        // Try to get the Matrix user profile from server first
-                        val matrixUser = dataSource.getProfile(UserId(mapping.matrixUserId))
-                        
-                        if (matrixUser != null) {
-                            // Use server data with our enhanced information
-                            val enhancedUser = matrixUser.copy(
-                                displayName = mapping.displayName
-                            )
-                            results.add(UserSearchResult(enhancedUser, mapping))
-                            Timber.d("MatrixUserRepository: Found user from server: ${mapping.displayName} (${mapping.matrixUserId})")
-                        } else {
-                            // Create user from mapping data directly (offline mode)
-                            val offlineUser = MatrixUser(
-                                userId = UserId(mapping.matrixUserId),
-                                displayName = mapping.displayName,
-                                avatarUrl = mapping.avatarUrl
-                            )
-                            results.add(UserSearchResult(offlineUser, mapping))
-                            Timber.d("MatrixUserRepository: Created offline user: ${mapping.displayName} (${mapping.matrixUserId})")
-                        }
-                    } catch (e: Exception) {
-                        Timber.w(e, "MatrixUserRepository: Error getting Matrix profile for ${mapping.matrixUserId}, creating offline user")
-                        
-                        // Create user from mapping data as fallback
-                        val fallbackUser = MatrixUser(
-                            userId = UserId(mapping.matrixUserId),
-                            displayName = mapping.displayName,
-                            avatarUrl = mapping.avatarUrl
-                        )
-                        results.add(UserSearchResult(fallbackUser, mapping))
-                    }
-                }
-            }
-            
-            // If no results from mapping, try Matrix server search
-            if (results.isEmpty() && !query.startsWith("@")) {
-                Timber.d("MatrixUserRepository: No local results, trying Matrix server search")
-                val matrixResults = dataSource
-                    .search(query, MAXIMUM_SEARCH_RESULTS)
-                    .filter { !client.isMe(it.userId) }
+            val response = searchUsers(query, 50)
+            val results = response.results.map { matrixUser ->
+                // Extract username from Matrix ID: @username:domain -> username
+                val username = matrixUser.userId.value.substringAfter("@").substringBefore(":")
+                Timber.d("UserRepository: Looking for user mapping for username: '$username' from Matrix ID: '${matrixUser.userId.value}'")
                 
-                Timber.d("MatrixUserRepository: Matrix server returned ${matrixResults.size} results")
+                // Try to get user mapping for enhanced display
+                val userMapping = userMappingService.getUserMapping(username)
                 
-                // Enhance Matrix results with mapping data if available, or discover new mappings
-                for (matrixUser in matrixResults) {
-                    val username = extractUsernameFromMatrixId(matrixUser.userId.value)
-                    var mapping = userMappingService.getUserMapping(username)
-                    
-                    if (mapping == null) {
-                        // Try to discover and create a mapping for this user
-                        cognitoUserIntegrationService.discoverUserMapping(
-                            matrixUser.userId.value, 
-                            matrixUser.displayName
-                        )
-                        // Check again after discovery attempt
-                        mapping = userMappingService.getUserMapping(username)
-                    }
-                    
-                    if (mapping != null) {
-                        val enhancedUser = matrixUser.copy(
-                            displayName = mapping.displayName
-                        )
-                        results.add(UserSearchResult(enhancedUser, mapping))
-                        Timber.d("MatrixUserRepository: Enhanced Matrix user with mapping: ${mapping.displayName}")
-                    } else {
-                        results.add(UserSearchResult(matrixUser, null))
-                        Timber.d("MatrixUserRepository: Added Matrix user without mapping: ${matrixUser.displayName ?: matrixUser.userId.value}")
-                    }
-                }
-            }
-            
-            // Handle direct Matrix ID queries
-            if (shouldQueryProfile && results.none { it.matrixUser.userId.value == query }) {
-                Timber.d("MatrixUserRepository: Handling direct Matrix ID query: $query")
-                val profileUser = dataSource.getProfile(UserId(query))
-                if (profileUser != null) {
-                    val username = extractUsernameFromMatrixId(query)
-                    var mapping = userMappingService.getUserMapping(username)
-                    
-                    if (mapping == null) {
-                        // Try to discover mapping for direct profile query
-                        cognitoUserIntegrationService.discoverUserMapping(query, profileUser.displayName)
-                        mapping = userMappingService.getUserMapping(username)
-                    }
-                    
-                    results.add(0, UserSearchResult(profileUser, mapping))
+                if (userMapping != null) {
+                    Timber.d("UserRepository: Found user mapping for '$username': ${userMapping.displayName}")
                 } else {
-                    results.add(0, UserSearchResult(MatrixUser(UserId(query)), null, isUnresolved = true))
+                    Timber.w("UserRepository: No user mapping found for '$username'")
                 }
+                
+                UserSearchResult(
+                    matrixUser = matrixUser,
+                    userMapping = userMapping,
+                    isUnresolved = userMapping == null
+                )
             }
             
+            Timber.d("UserRepository: Legacy search completed with ${results.size} results")
+            emit(UserSearchResultState(results = results, isSearching = false))
         } catch (e: Exception) {
-            Timber.e(e, "MatrixUserRepository: Error in search")
+            Timber.e(e, "UserRepository: Error in legacy search - ${e.message}")
+            Timber.e("UserRepository: Exception details: ${e.javaClass.simpleName}")
+            // Even if there's an error, try to return cached results
+            try {
+                val cachedResponse = getCachedUsers(50, query)
+                val cachedResults = cachedResponse.results.map { matrixUser ->
+                    val username = matrixUser.userId.value.substringAfter("@").substringBefore(":")
+                    val userMapping = userMappingService.getUserMapping(username)
+                    
+                    UserSearchResult(
+                        matrixUser = matrixUser,
+                        userMapping = userMapping,
+                        isUnresolved = userMapping == null
+                    )
+                }
+                emit(UserSearchResultState(results = cachedResults, isSearching = false))
+            } catch (cacheException: Exception) {
+                Timber.e(cacheException, "UserRepository: Error in cached search fallback - ${cacheException.message}")
+                Timber.e("UserRepository: Cache exception details: ${cacheException.javaClass.simpleName}")
+                emit(UserSearchResultState(results = emptyList(), isSearching = false))
+            }
         }
+    }
 
-        val finalResults = results.distinctBy { it.matrixUser.userId }.take(MAXIMUM_SEARCH_RESULTS.toInt())
-        Timber.d("MatrixUserRepository: Returning ${finalResults.size} final results for query: '$query'")
+    override suspend fun searchUsers(query: String, limit: Long): UserSearchResponse = withContext(dispatchers.io) {
+        Timber.d("UserRepository: Searching for users with query: '$query', limit: $limit")
         
-        return UserSearchResultState(
-            results = finalResults, 
-            isSearching = false
+        val results = mutableListOf<MatrixUser>()
+        val addedUserIds = mutableSetOf<String>()
+        
+        // If query is empty or less than 2 characters, show cached users only
+        if (query.isBlank()) {
+            Timber.d("UserRepository: Empty query, showing all cached users")
+            return@withContext getCachedUsers(limit)
+        }
+        
+        if (query.length < 2) {
+            Timber.d("UserRepository: Query too short (${query.length} chars), showing cached users matching query")
+            return@withContext getCachedUsers(limit, query)
+        }
+        
+        // For 2+ characters, prioritize AWS backend search
+        try {
+            Timber.d("UserRepository: Query length ${query.length}, searching AWS backend first")
+            val awsUsers = awsUserSearchService.searchUsers(query)
+            Timber.d("UserRepository: Found ${awsUsers.size} users from AWS backend")
+            
+            // Convert AWS users to MatrixUser objects and add to results
+            awsUsers.forEach { awsUser ->
+                val matrixUser = MatrixUser(
+                    userId = UserId(awsUser.matrixUserId),
+                    displayName = awsUser.displayName,
+                    avatarUrl = awsUser.avatarUrl
+                )
+                results.add(matrixUser)
+                addedUserIds.add(matrixUser.userId.value)
+                
+                // Add to local directory and user mapping for future caching
+                userDirectoryService.addUser(awsUser)
+                
+                // Add to user mapping service
+                userMappingService.addUserFromCognitoData(
+                    matrixUserId = awsUser.matrixUserId,
+                    matrixUsername = awsUser.matrixUserId.substringAfter("@").substringBefore(":"),
+                    cognitoUsername = awsUser.cognitoUsername,
+                    givenName = awsUser.givenName,
+                    familyName = awsUser.familyName,
+                    email = awsUser.email,
+                    specialty = awsUser.specialty,
+                    officeCity = awsUser.officeCity,
+                    avatarUrl = awsUser.avatarUrl
+                )
+                
+                Timber.d("UserRepository: Added AWS user to results: ${awsUser.displayName} (${awsUser.matrixUserId})")
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "UserRepository: Failed to search AWS backend, falling back to local search")
+        }
+        
+        // Add cached users that match but weren't found in AWS search
+        val cachedUsers = getCachedUsers(limit, query)
+        cachedUsers.results.forEach { cachedUser ->
+            if (!addedUserIds.contains(cachedUser.userId.value)) {
+                results.add(cachedUser)
+                addedUserIds.add(cachedUser.userId.value)
+                Timber.d("UserRepository: Added cached user to results: ${cachedUser.displayName} (${cachedUser.userId.value})")
+            }
+        }
+        
+        // Fallback to Matrix server search if still no results
+        if (results.isEmpty()) {
+            try {
+                Timber.d("UserRepository: No results from AWS/local search, trying Matrix server search")
+                val matrixSearchResult = matrixClient.searchUsers(query, limit)
+                matrixSearchResult.fold(
+                    onSuccess = { searchResults ->
+                        searchResults.results.forEach { matrixUser ->
+                            if (!addedUserIds.contains(matrixUser.userId.value)) {
+                                results.add(matrixUser)
+                                addedUserIds.add(matrixUser.userId.value)
+                            }
+                        }
+                        Timber.d("UserRepository: Found ${searchResults.results.size} users from Matrix server")
+                    },
+                    onFailure = { error ->
+                        Timber.w(error, "UserRepository: Matrix server search failed")
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.w(e, "UserRepository: Matrix server search failed")
+            }
+        }
+        
+        // Take only the requested limit
+        val limitedResults = results.take(limit.toInt())
+        
+        Timber.d("UserRepository: Returning ${limitedResults.size} total users for query: '$query'")
+        
+        UserSearchResponse(
+            results = limitedResults,
+            limited = limitedResults.size >= limit
         )
     }
     
-    private fun extractUsernameFromMatrixId(matrixId: String): String {
-        // Extract username from @username:domain format
-        return matrixId.removePrefix("@").substringBefore(":")
-    }
-
-    companion object {
-        private const val DEBOUNCE_TIME_MILLIS = 250L
-        private const val MINIMUM_SEARCH_LENGTH = 2 // Reduced for @username searches
-        private const val MAXIMUM_SEARCH_RESULTS = 10L
+    private suspend fun getCachedUsers(limit: Long, query: String = ""): UserSearchResponse {
+        val results = mutableListOf<MatrixUser>()
+        val addedUserIds = mutableSetOf<String>()
+        
+        // Get users from mapping service first (these have enhanced data)
+        val mappedUsers = if (query.isBlank()) {
+            userMappingService.searchUsers("", limit) // Get all cached mappings
+        } else {
+            userMappingService.searchUsers(query, limit)
+        }
+        
+        mappedUsers.forEach { mapping ->
+            val matrixUser = MatrixUser(
+                userId = UserId(mapping.matrixUserId),
+                displayName = mapping.displayName,
+                avatarUrl = mapping.avatarUrl
+            )
+            results.add(matrixUser)
+            addedUserIds.add(matrixUser.userId.value)
+            Timber.d("UserRepository: Added cached mapped user: ${mapping.displayName} (${mapping.matrixUserId})")
+        }
+        
+        // Get users from local directory
+        val localUsers = if (query.isBlank()) {
+            userDirectoryService.search("", limit) // Get all cached users
+        } else {
+            userDirectoryService.search(query, limit)
+        }
+        
+        localUsers.forEach { localUser ->
+            if (!addedUserIds.contains(localUser.matrixUserId)) {
+                val matrixUser = MatrixUser(
+                    userId = UserId(localUser.matrixUserId),
+                    displayName = localUser.displayName,
+                    avatarUrl = localUser.avatarUrl
+                )
+                results.add(matrixUser)
+                addedUserIds.add(matrixUser.userId.value)
+                Timber.d("UserRepository: Added cached local user: ${localUser.displayName} (${localUser.matrixUserId})")
+            }
+        }
+        
+        val limitedResults = results.take(limit.toInt())
+        Timber.d("UserRepository: Returning ${limitedResults.size} cached users for query: '$query'")
+        
+        return UserSearchResponse(
+            results = limitedResults,
+            limited = limitedResults.size >= limit
+        )
     }
 }

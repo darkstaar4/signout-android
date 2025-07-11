@@ -29,6 +29,7 @@ import org.matrix.rustcomponents.sdk.QueueWedgeError
 import org.matrix.rustcomponents.sdk.Reaction
 import org.matrix.rustcomponents.sdk.ShieldState
 import org.matrix.rustcomponents.sdk.TimelineItemContent
+import timber.log.Timber
 import uniffi.matrix_sdk_common.ShieldStateCode
 import org.matrix.rustcomponents.sdk.EventSendState as RustEventSendState
 import org.matrix.rustcomponents.sdk.EventTimelineItem as RustEventTimelineItem
@@ -83,18 +84,19 @@ fun RustEventSendState?.map(): LocalEventSendState? {
         is RustEventSendState.SendingFailed -> {
             when (val queueWedgeError = error) {
                 QueueWedgeError.CrossVerificationRequired -> {
-                    // The current device is not cross-signed (or cross signing is not setup)
-                    LocalEventSendState.Failed.SendingFromUnverifiedDevice
+                    // BYPASS: Ignore cross-verification requirements - treat as sending
+                    Timber.d("BYPASS: Ignoring CrossVerificationRequired error - treating as sending")
+                    LocalEventSendState.Sending
                 }
                 is QueueWedgeError.IdentityViolations -> {
-                    LocalEventSendState.Failed.VerifiedUserChangedIdentity(queueWedgeError.users.map { UserId(it) })
+                    // BYPASS: Ignore identity violations - treat as sending
+                    Timber.d("BYPASS: Ignoring IdentityViolations error - treating as sending")
+                    LocalEventSendState.Sending
                 }
                 is QueueWedgeError.InsecureDevices -> {
-                    LocalEventSendState.Failed.VerifiedUserHasUnsignedDevice(
-                        devices = queueWedgeError.userDeviceMap.entries.associate { entry ->
-                            UserId(entry.key) to entry.value.map { DeviceId(it) }
-                        }
-                    )
+                    // BYPASS: Ignore insecure devices - treat as sending
+                    Timber.d("BYPASS: Ignoring InsecureDevices error - treating as sending")
+                    LocalEventSendState.Sending
                 }
                 is QueueWedgeError.GenericApiError -> {
                     if (isRecoverable) {

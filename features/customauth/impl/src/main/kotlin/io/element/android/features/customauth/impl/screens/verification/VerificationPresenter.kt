@@ -58,43 +58,44 @@ class VerificationPresenter
                                 errorMessage = null
 
                                 try {
-                                    val result = cognitoAuthService.confirmSignUp(username, verificationCode.trim())
+                                    val result = cognitoAuthService.confirmSignUp(email, verificationCode.trim())
                                     if (result.isSuccess) {
-                                        Timber.d("Email verification successful for user: $username")
+                                        Timber.d("Email verification successful for user: $email")
                                         
-                                        // Create Matrix account
-                                        val updateResult = cognitoAuthService.updateMatrixCredentials(
-                                            username = username,
-                                            matrixUserId = "@${username}:signout.io",
-                                            matrixUsername = username,
-                                            matrixPassword = password
-                                        )
-                                        
-                                        if (updateResult.isSuccess) {
-                                            Timber.d("Matrix credentials stored in Cognito successfully")
-                                            
-                                            // IMPORTANT: Login the user to establish Cognito session
-                                            // This ensures the profile screen shows the correct user's data
-                                            try {
-                                                Timber.d("Logging in new user to establish Cognito session: $email")
-                                                val loginResult = cognitoAuthService.login(email, password, matrixIntegrationService)
-                                                if (loginResult.isSuccess) {
-                                                    Timber.d("Auto-login successful after verification")
-                                                    
-                                                    // User mapping will be populated after Matrix session is established
-                                                    Timber.d("Matrix session will be established, user mapping will be populated")
-                                                    
+                                        // IMPORTANT: Login the user first to establish Cognito session
+                                        // This is required before updating Matrix credentials
+                                        try {
+                                            Timber.d("Logging in new user to establish Cognito session: $email")
+                                            val loginResult = cognitoAuthService.login(email, password, matrixIntegrationService)
+                                            if (loginResult.isSuccess) {
+                                                Timber.d("Auto-login successful after verification")
+                                                
+                                                // Now update Matrix credentials with valid session
+                                                val updateResult = cognitoAuthService.updateMatrixCredentials(
+                                                    username = email,
+                                                    matrixUserId = "@${username}:signout.io",
+                                                    matrixUsername = username,
+                                                    matrixPassword = password
+                                                )
+                                                
+                                                if (updateResult.isSuccess) {
+                                                    Timber.d("Matrix credentials stored in Cognito successfully")
                                                     isMatrixAccountCreated = true
                                                 } else {
-                                                    Timber.w("Auto-login failed after verification: ${loginResult.error}")
+                                                    Timber.w("Failed to store Matrix credentials in Cognito: ${updateResult.error}")
+                                                    // Still mark as successful since login worked
                                                     isMatrixAccountCreated = true
                                                 }
-                                            } catch (loginException: Exception) {
-                                                Timber.w(loginException, "Failed to auto-login after verification")
-                                                isMatrixAccountCreated = true
+                                                
+                                                // User mapping will be populated after Matrix session is established
+                                                Timber.d("Matrix session will be established, user mapping will be populated")
+                                            } else {
+                                                Timber.w("Auto-login failed after verification: ${loginResult.error}")
+                                                errorMessage = "Registration successful but login failed. Please try logging in manually."
                                             }
-                                        } else {
-                                            Timber.w("Failed to store Matrix credentials in Cognito: ${updateResult.error}")
+                                        } catch (loginException: Exception) {
+                                            Timber.w(loginException, "Failed to auto-login after verification")
+                                            errorMessage = "Registration successful but login failed. Please try logging in manually."
                                         }
                                         
                                         isVerificationSuccessful = true
@@ -118,7 +119,7 @@ class VerificationPresenter
                             errorMessage = null
                             
                             try {
-                                val result = cognitoAuthService.resendConfirmationCode(username)
+                                val result = cognitoAuthService.resendConfirmationCode(email)
                                 if (result.isSuccess) {
                                     Timber.d("Confirmation code resent successfully")
                                 } else {

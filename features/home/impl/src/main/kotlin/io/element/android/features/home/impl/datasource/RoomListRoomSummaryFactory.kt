@@ -19,6 +19,7 @@ import io.element.android.libraries.matrix.api.room.CurrentUserMembership
 import io.element.android.libraries.matrix.api.room.isDm
 import io.element.android.libraries.matrix.api.roomlist.RoomSummary
 import io.element.android.libraries.matrix.ui.model.getAvatarData
+import io.element.android.libraries.matrix.ui.model.InviteSender
 import io.element.android.libraries.matrix.ui.model.toInviteSender
 import io.element.android.libraries.usersearch.api.CognitoUserIntegrationService
 import io.element.android.libraries.usersearch.api.UserMappingService
@@ -98,7 +99,21 @@ class RoomListRoomSummaryFactory @Inject constructor(
             hasRoomCall = roomInfo.hasRoomCall,
             isDirect = roomInfo.isDirect,
             isFavorite = roomInfo.isFavorite,
-            inviteSender = roomInfo.inviter?.toInviteSender(),
+            inviteSender = roomInfo.inviter?.let { inviter ->
+                // Create enhanced InviteSender with user mapping
+                val username = inviter.userId.value.substringAfter("@").substringBefore(":")
+                val userMapping = userMappingService.getUserMapping(username)
+                val enhancedDisplayName = userMapping?.displayName ?: inviter.displayName ?: ""
+                
+                Timber.d("RoomListRoomSummaryFactory: Creating InviteSender for $username - enhanced: $enhancedDisplayName")
+                
+                InviteSender(
+                    userId = inviter.userId,
+                    displayName = enhancedDisplayName,
+                    avatarData = inviter.getAvatarData(size = AvatarSize.InviteSender),
+                    membershipChangeReason = inviter.membershipChangeReason
+                )
+            },
             isDm = roomInfo.isDm,
             canonicalAlias = roomInfo.canonicalAlias,
             displayType = when (roomInfo.currentUserMembership) {

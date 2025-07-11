@@ -11,6 +11,7 @@ import io.element.android.libraries.designsystem.theme.components.SearchBarResul
 import io.element.android.libraries.matrix.api.room.recent.RecentDirectRoom
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.usersearch.api.UserSearchResult
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableList
 
 data class UserListState(
@@ -21,6 +22,7 @@ data class UserListState(
     val isSearchActive: Boolean,
     val selectionMode: SelectionMode,
     val recentDirectRooms: ImmutableList<RecentDirectRoom>,
+    val userMappingService: UserMappingService,
     val eventSink: (UserListEvents) -> Unit,
 ) {
     val isMultiSelectionEnabled = selectionMode == SelectionMode.Multiple

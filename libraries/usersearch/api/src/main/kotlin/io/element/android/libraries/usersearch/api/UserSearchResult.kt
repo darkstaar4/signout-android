@@ -19,3 +19,9 @@ data class UserSearchResultState(
     val results: List<UserSearchResult>,
     val isSearching: Boolean,
 )
+
+// New UserSearchResponse for the enhanced search API
+data class UserSearchResponse(
+    val results: List<MatrixUser>,
+    val limited: Boolean = false,
+)

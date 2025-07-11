@@ -30,7 +30,7 @@
   <string name="screen_blocked_users_unblock_alert_description">"You\'ll be able to see all messages from them again."</string>
   <string name="screen_blocked_users_unblock_alert_title">"Unblock user"</string>
   <string name="screen_blocked_users_unblocking">"Unblocking…"</string>
-  <string name="screen_edit_profile_display_name">"Display name"</string>
+  <string name="screen_edit_profile_display_name">"Username"</string>
   <string name="screen_edit_profile_display_name_placeholder">"Your display name"</string>
   <string name="screen_edit_profile_error">"An unknown error was encountered and the information couldn\'t be changed."</string>
   <string name="screen_edit_profile_error_title">"Unable to update profile"</string>

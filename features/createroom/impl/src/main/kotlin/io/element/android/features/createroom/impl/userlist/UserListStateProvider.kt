@@ -14,8 +14,35 @@ import io.element.android.libraries.matrix.api.room.recent.RecentDirectRoom
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.components.aMatrixUserList
 import io.element.android.libraries.usersearch.api.UserSearchResult
+import io.element.android.libraries.usersearch.api.UserMappingService
+import io.element.android.libraries.usersearch.api.UserMapping
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
+// Fake UserMappingService for testing purposes
+private class FakeUserMappingService : UserMappingService {
+    override fun getUserMapping(username: String): UserMapping? = null
+    override fun addUserMapping(userMapping: UserMapping) {}
+    override val userMappingUpdates: Flow<UserMapping> = emptyFlow()
+    override fun addUserFromCognitoData(
+        matrixUserId: String,
+        matrixUsername: String,
+        cognitoUsername: String,
+        givenName: String,
+        familyName: String,
+        email: String,
+        specialty: String?,
+        officeCity: String?,
+        avatarUrl: String?
+    ) {}
+    override fun searchUsers(query: String): List<UserMapping> = emptyList()
+    override fun searchUsers(query: String, limit: Long): List<UserMapping> = emptyList()
+    override fun removeUser(matrixUsername: String) {}
+    override fun clearAll() {}
+    override fun getCachedMappingsCount(): Int = 0
+}
 
 open class UserListStateProvider : PreviewParameterProvider<UserListState> {
     override val values: Sequence<UserListState>
@@ -66,6 +93,7 @@ fun aUserListState(
     showSearchLoader: Boolean = false,
     selectionMode: SelectionMode = SelectionMode.Single,
     recentDirectRooms: List<RecentDirectRoom> = emptyList(),
+    userMappingService: UserMappingService = FakeUserMappingService(),
     eventSink: (UserListEvents) -> Unit = {},
 ) = UserListState(
     searchQuery = searchQuery,
@@ -75,6 +103,7 @@ fun aUserListState(
     showSearchLoader = showSearchLoader,
     selectionMode = selectionMode,
     recentDirectRooms = recentDirectRooms.toImmutableList(),
+    userMappingService = userMappingService,
     eventSink = eventSink
 )
 

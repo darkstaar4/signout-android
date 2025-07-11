@@ -148,15 +148,7 @@ private fun ColumnScope.ManageAppSection(
             onClick = onOpenLockScreenSettings,
         )
     }
-    if (state.showSecureBackup) {
-        ListItem(
-            headlineContent = { Text(stringResource(id = CommonStrings.common_encryption)) },
-            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Key())),
-            trailingContent = ListItemContent.Badge.takeIf { state.showSecureBackupBadge },
-            onClick = onSecureBackupClick,
-        )
-    }
-    if (state.showNotificationSettings || state.showLockScreenSettings || state.showSecureBackup) {
+    if (state.showNotificationSettings || state.showLockScreenSettings) {
         HorizontalDivider()
     }
 }

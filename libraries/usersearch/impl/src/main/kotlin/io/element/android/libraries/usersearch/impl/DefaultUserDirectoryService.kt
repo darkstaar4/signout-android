@@ -83,7 +83,10 @@ class DefaultUserDirectoryService @Inject constructor() : UserDirectoryService {
             Timber.d("UserDirectoryService: [Instance $instanceId] Directory contains ${userDirectory.size} users: ${userDirectory.keys.joinToString()}")
             
             if (query.isBlank()) {
-                return@withContext Result.success(emptyList())
+                // Return all cached users if query is empty
+                val results = userDirectory.values.take(limit)
+                Timber.d("UserDirectoryService: [Instance $instanceId] Returning ${results.size} cached users for empty query")
+                return@withContext Result.success(results)
             }
             
             val searchQuery = query.lowercase().trim()
@@ -122,6 +125,13 @@ class DefaultUserDirectoryService @Inject constructor() : UserDirectoryService {
             Timber.e(e, "UserDirectoryService: Error searching users for query: '$query'")
             Result.failure(e)
         }
+    }
+    
+    override suspend fun search(
+        query: String,
+        limit: Long
+    ): List<UserDirectoryEntry> {
+        return searchUsers(query, limit.toInt()).getOrElse { emptyList() }
     }
     
     override suspend fun getUserProfile(matrixUserId: String): Result<UserDirectoryEntry?> = withContext(Dispatchers.IO) {

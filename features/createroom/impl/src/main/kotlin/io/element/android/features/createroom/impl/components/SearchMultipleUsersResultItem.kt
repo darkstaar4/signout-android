@@ -54,8 +54,8 @@ internal fun SearchMultipleUsersResultItem(
     // Format secondary text: @preferred_username | custom:specialty | custom:office_city
     val secondaryText = buildString {
         if (userMapping != null) {
-            // Use Cognito preferred_username if available, otherwise extract from Matrix ID
-            val preferredUsername = userMapping.cognitoUsername ?: extractUsernameFromMatrixId(matrixUser.userId.value)
+            // Use Matrix username (e.g., "nabilbaig") instead of Cognito UUID
+            val preferredUsername = userMapping.matrixUsername ?: extractUsernameFromMatrixId(matrixUser.userId.value)
             append("@$preferredUsername")
             
             // Add specialty if available

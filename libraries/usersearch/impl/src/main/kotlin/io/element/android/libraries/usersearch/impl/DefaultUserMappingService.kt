@@ -137,17 +137,42 @@ class DefaultUserMappingService @Inject constructor(
     }
     
     override fun searchUsers(query: String): List<UserMapping> {
-        val results = sharedUserMappings.values.filter { userMapping ->
-            userMapping.displayName.contains(query, ignoreCase = true) ||
-            userMapping.firstName.contains(query, ignoreCase = true) ||
-            userMapping.lastName.contains(query, ignoreCase = true) ||
-            userMapping.matrixUsername.contains(query, ignoreCase = true) ||
-            userMapping.email.contains(query, ignoreCase = true) ||
-            userMapping.specialty?.contains(query, ignoreCase = true) == true ||
-            userMapping.officeCity?.contains(query, ignoreCase = true) == true
+        val results = if (query.isBlank()) {
+            // Return all cached mappings if query is empty
+            sharedUserMappings.values.toList()
+        } else {
+            sharedUserMappings.values.filter { userMapping ->
+                userMapping.displayName.contains(query, ignoreCase = true) ||
+                userMapping.firstName.contains(query, ignoreCase = true) ||
+                userMapping.lastName.contains(query, ignoreCase = true) ||
+                userMapping.matrixUsername.contains(query, ignoreCase = true) ||
+                userMapping.email.contains(query, ignoreCase = true) ||
+                userMapping.specialty?.contains(query, ignoreCase = true) == true ||
+                userMapping.officeCity?.contains(query, ignoreCase = true) == true
+            }
         }.take(10) // Default limit of 10
         
         Timber.d("UserMappingService: [Instance $instanceId] Search for '$query' returned ${results.size} results")
+        return results
+    }
+    
+    override fun searchUsers(query: String, limit: Long): List<UserMapping> {
+        val results = if (query.isBlank()) {
+            // Return all cached mappings if query is empty
+            sharedUserMappings.values.toList()
+        } else {
+            sharedUserMappings.values.filter { userMapping ->
+                userMapping.displayName.contains(query, ignoreCase = true) ||
+                userMapping.firstName.contains(query, ignoreCase = true) ||
+                userMapping.lastName.contains(query, ignoreCase = true) ||
+                userMapping.matrixUsername.contains(query, ignoreCase = true) ||
+                userMapping.email.contains(query, ignoreCase = true) ||
+                userMapping.specialty?.contains(query, ignoreCase = true) == true ||
+                userMapping.officeCity?.contains(query, ignoreCase = true) == true
+            }
+        }.take(limit.toInt())
+        
+        Timber.d("UserMappingService: [Instance $instanceId] Search for '$query' with limit $limit returned ${results.size} results")
         return results
     }
     

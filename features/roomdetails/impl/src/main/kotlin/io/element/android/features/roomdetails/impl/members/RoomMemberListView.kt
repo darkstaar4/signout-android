@@ -22,6 +22,11 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -62,8 +67,10 @@ import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.getBestName
 import io.element.android.libraries.matrix.api.room.toMatrixUser
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.components.MatrixUserRow
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -110,7 +117,7 @@ fun RoomMemberListView(
         ) {
             RoomMemberSearchBar(
                 query = state.searchQuery,
-                state = state.searchResults,
+                searchResults = state.searchResults,
                 active = state.isSearchActive,
                 placeHolderTitle = stringResource(CommonStrings.common_search_for_someone),
                 onActiveChange = { state.eventSink(RoomMemberListEvents.OnSearchActiveChanged(it)) },
@@ -118,6 +125,7 @@ fun RoomMemberListView(
                 onSelectUser = ::onSelectUser,
                 selectedSection = selectedSection,
                 modifier = Modifier.fillMaxWidth(),
+                userMappingService = state.userMappingService,
             )
 
             if (!state.isSearchActive) {
@@ -128,6 +136,7 @@ fun RoomMemberListView(
                     selectedSection = selectedSection,
                     onSelectedSectionChange = { selectedSection = it },
                     onSelectUser = ::onSelectUser,
+                    userMappingService = state.userMappingService,
                 )
             }
         }
@@ -142,6 +151,7 @@ private fun RoomMemberList(
     onSelectedSectionChange: (SelectedSection) -> Unit,
     canDisplayBannedUsersControls: Boolean,
     onSelectUser: (RoomMember) -> Unit,
+    userMappingService: UserMappingService,
 ) {
     LazyColumn(modifier = Modifier.fillMaxWidth(), state = rememberLazyListState()) {
         stickyHeader {
@@ -185,6 +195,7 @@ private fun RoomMemberList(
                 selectedSection = selectedSection,
                 onSelectUser = onSelectUser,
                 showMembersCount = showMembersCount,
+                userMappingService = userMappingService,
             )
             AsyncData.Uninitialized -> Unit
         }
@@ -196,6 +207,7 @@ private fun LazyListScope.memberItems(
     selectedSection: SelectedSection,
     onSelectUser: (RoomMember) -> Unit,
     showMembersCount: Boolean,
+    userMappingService: UserMappingService,
 ) {
     when (selectedSection) {
         SelectedSection.MEMBERS -> {
@@ -203,7 +215,8 @@ private fun LazyListScope.memberItems(
                 roomMemberListSection(
                     headerText = { stringResource(id = R.string.screen_room_member_list_pending_header_title) },
                     members = roomMembers.invited,
-                    onMemberSelected = { onSelectUser(it) }
+                    onMemberSelected = { onSelectUser(it) },
+                    userMappingService = userMappingService,
                 )
             }
             if (roomMembers.joined.isNotEmpty()) {
@@ -217,7 +230,8 @@ private fun LazyListScope.memberItems(
                         }
                     },
                     members = roomMembers.joined,
-                    onMemberSelected = { onSelectUser(it) }
+                    onMemberSelected = { onSelectUser(it) },
+                    userMappingService = userMappingService,
                 )
             }
         }
@@ -226,7 +240,8 @@ private fun LazyListScope.memberItems(
                 roomMemberListSection(
                     headerText = null,
                     members = roomMembers.banned,
-                    onMemberSelected = { onSelectUser(it) }
+                    onMemberSelected = { onSelectUser(it) },
+                    userMappingService = userMappingService,
                 )
             } else {
                 item {
@@ -267,6 +282,7 @@ private fun LazyListScope.roomMemberListSection(
     headerText: @Composable (() -> String)?,
     members: ImmutableList<RoomMemberWithIdentityState>?,
     onMemberSelected: (RoomMember) -> Unit,
+    userMappingService: UserMappingService,
 ) {
     headerText?.let {
         item {
@@ -282,7 +298,8 @@ private fun LazyListScope.roomMemberListSection(
         RoomMemberListItem(
             modifier = Modifier.fillMaxWidth(),
             roomMemberWithIdentity = matrixUser,
-            onClick = { onMemberSelected(matrixUser.roomMember) }
+            onClick = { onMemberSelected(matrixUser.roomMember) },
+            userMappingService = userMappingService,
         )
     }
 }
@@ -292,6 +309,7 @@ private fun RoomMemberListItem(
     roomMemberWithIdentity: RoomMemberWithIdentityState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    userMappingService: UserMappingService,
 ) {
     val roleText = when (roomMemberWithIdentity.roomMember.role) {
         RoomMember.Role.ADMIN -> stringResource(R.string.screen_room_member_list_role_administrator)
@@ -299,9 +317,30 @@ private fun RoomMemberListItem(
         RoomMember.Role.USER -> null
     }
 
+    // Get enhanced display name from user mapping service
+    var enhancedMatrixUser by remember { mutableStateOf(roomMemberWithIdentity.roomMember.toMatrixUser()) }
+    
+    LaunchedEffect(roomMemberWithIdentity.roomMember.userId) {
+        try {
+            val username = roomMemberWithIdentity.roomMember.userId.value.substringAfter("@").substringBefore(":")
+            val userMapping = userMappingService.getUserMapping(username)
+            
+            if (userMapping != null) {
+                // Create enhanced MatrixUser with user mapping display name
+                enhancedMatrixUser = MatrixUser(
+                    userId = roomMemberWithIdentity.roomMember.userId,
+                    displayName = userMapping.displayName, // This will be "RaceX Cars", "Nabil IC", etc.
+                    avatarUrl = roomMemberWithIdentity.roomMember.avatarUrl,
+                )
+            }
+        } catch (e: Exception) {
+            // Fallback to original MatrixUser if user mapping fails
+        }
+    }
+
     MatrixUserRow(
         modifier = modifier.clickable(onClick = onClick),
-        matrixUser = roomMemberWithIdentity.roomMember.toMatrixUser(),
+        matrixUser = enhancedMatrixUser,
         avatarSize = AvatarSize.UserListItem,
         trailingContent = {
             Row(
@@ -368,7 +407,7 @@ private fun RoomMemberListTopBar(
 @Composable
 private fun RoomMemberSearchBar(
     query: String,
-    state: SearchBarResultState<AsyncData<RoomMembers>>,
+    searchResults: SearchBarResultState<AsyncData<RoomMembers>>,
     active: Boolean,
     placeHolderTitle: String,
     onActiveChange: (Boolean) -> Unit,
@@ -376,6 +415,7 @@ private fun RoomMemberSearchBar(
     onSelectUser: (RoomMember) -> Unit,
     selectedSection: SelectedSection,
     modifier: Modifier = Modifier,
+    userMappingService: UserMappingService,
 ) {
     SearchBar(
         query = query,
@@ -384,7 +424,7 @@ private fun RoomMemberSearchBar(
         onActiveChange = onActiveChange,
         modifier = modifier,
         placeHolderTitle = placeHolderTitle,
-        resultState = state,
+        resultState = searchResults,
         resultHandler = { results ->
             RoomMemberList(
                 roomMembers = results,
@@ -393,6 +433,7 @@ private fun RoomMemberSearchBar(
                 canDisplayBannedUsersControls = false,
                 selectedSection = selectedSection,
                 onSelectedSectionChange = {},
+                userMappingService = userMappingService,
             )
         },
     )

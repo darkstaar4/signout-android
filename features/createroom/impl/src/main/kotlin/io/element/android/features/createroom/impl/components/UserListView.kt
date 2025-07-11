@@ -88,6 +88,40 @@ fun UserListView(
                         val isSelected = state.selectedUsers.any {
                             recentDirectRoom.matrixUser.userId == it.userId
                         }
+                        
+                        // Get enhanced user information using user mapping service
+                        val username = recentDirectRoom.matrixUser.userId.value.substringAfter("@").substringBefore(":")
+                        val userMapping = state.userMappingService.getUserMapping(username)
+                        
+                        // Format display name: use given_name family_name from Cognito if available
+                        val displayName = userMapping?.displayName ?: recentDirectRoom.matrixUser.displayName ?: recentDirectRoom.matrixUser.userId.value
+                        
+                        // Format secondary text: @preferred_username | custom:specialty | custom:office_city
+                        val secondaryText = buildString {
+                            if (userMapping != null) {
+                                // Use Matrix username (e.g., "nabilbaig") instead of Cognito UUID
+                                val preferredUsername = userMapping.matrixUsername ?: username
+                                append("@$preferredUsername")
+                                
+                                // Add specialty if available
+                                userMapping.specialty?.let { specialty ->
+                                    if (specialty.isNotEmpty()) {
+                                        append(" | $specialty")
+                                    }
+                                }
+                                
+                                // Add office city if available
+                                userMapping.officeCity?.let { city ->
+                                    if (city.isNotEmpty()) {
+                                        append(" | $city")
+                                    }
+                                }
+                            } else {
+                                // Fallback to Matrix ID if no Cognito data
+                                append(recentDirectRoom.matrixUser.userId.value)
+                            }
+                        }
+                        
                         CheckableUserRow(
                             checked = isSelected,
                             onCheckedChange = {
@@ -101,8 +135,8 @@ fun UserListView(
                             },
                             data = CheckableUserRowData.Resolved(
                                 avatarData = recentDirectRoom.matrixUser.getAvatarData(AvatarSize.UserListItem),
-                                name = recentDirectRoom.matrixUser.getBestName(),
-                                subtext = recentDirectRoom.matrixUser.userId.value,
+                                name = displayName,
+                                subtext = secondaryText,
                             ),
                         )
                         if (index < state.recentDirectRooms.lastIndex) {

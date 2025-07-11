@@ -60,6 +60,11 @@ interface UserMappingService {
     fun searchUsers(query: String): List<UserMapping>
     
     /**
+     * Search for users by query string with limit
+     */
+    fun searchUsers(query: String, limit: Long): List<UserMapping>
+    
+    /**
      * Remove user mapping
      */
     fun removeUser(matrixUsername: String)

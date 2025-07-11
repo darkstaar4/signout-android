@@ -451,7 +451,7 @@ class CognitoAuthService
                             val error = when (exception) {
                                 is InvalidParameterException -> "Invalid verification code. Please try again."
                                 is NotAuthorizedException -> "Verification code has expired. Please request a new one."
-                                is UserNotFoundException -> "User is already confirmed."
+                                is UserNotFoundException -> "User account not found. Please register again or contact support."
                                 else -> "Verification failed: ${exception.message}"
                             }
                             continuation.resume(ConfirmResult(isSuccess = false, error = error))

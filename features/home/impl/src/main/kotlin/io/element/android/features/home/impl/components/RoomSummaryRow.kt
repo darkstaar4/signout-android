@@ -243,7 +243,8 @@ private fun InviteSubtitle(
     modifier: Modifier = Modifier
 ) {
     val subtitle = if (isDm) {
-        inviteSender?.userId?.value
+        // Extract just the username part (without homeserver) from the full Matrix ID
+        inviteSender?.userId?.value?.substringAfter("@")?.substringBefore(":")
     } else {
         null
     }

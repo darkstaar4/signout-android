@@ -35,6 +35,14 @@ interface UserDirectoryService {
     ): Result<List<UserDirectoryEntry>>
     
     /**
+     * Search users by name, specialty, or other attributes (simplified version)
+     */
+    suspend fun search(
+        query: String,
+        limit: Long = 50
+    ): List<UserDirectoryEntry>
+    
+    /**
      * Get a specific user's profile
      */
     suspend fun getUserProfile(matrixUserId: String): Result<UserDirectoryEntry?>

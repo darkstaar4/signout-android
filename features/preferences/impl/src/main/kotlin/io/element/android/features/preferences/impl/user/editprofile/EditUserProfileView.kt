@@ -67,16 +67,6 @@ fun EditUserProfileView(
             TopAppBar(
                 titleStr = stringResource(R.string.screen_edit_profile_title),
                 navigationIcon = { BackButton(onClick = onBackClick) },
-                actions = {
-                    TextButton(
-                        text = stringResource(CommonStrings.action_save),
-                        enabled = state.saveButtonEnabled,
-                        onClick = {
-                            focusManager.clearFocus()
-                            state.eventSink(EditUserProfileEvents.Save)
-                        },
-                    )
-                }
             )
         },
     ) { padding ->
@@ -101,10 +91,11 @@ fun EditUserProfileView(
             Spacer(modifier = Modifier.height(40.dp))
             TextField(
                 label = stringResource(R.string.screen_edit_profile_display_name),
-                value = state.displayName,
+                value = state.userId.value.substringAfter("@").substringBefore(":"),
                 placeholder = stringResource(CommonStrings.common_room_name_placeholder),
                 singleLine = true,
-                onValueChange = { state.eventSink(EditUserProfileEvents.UpdateDisplayName(it)) },
+                readOnly = true,
+                onValueChange = { },
             )
         }
 
@@ -113,19 +104,6 @@ fun EditUserProfileView(
             isVisible = isAvatarActionsSheetVisible.value,
             onDismiss = { isAvatarActionsSheetVisible.value = false },
             onSelectAction = { state.eventSink(EditUserProfileEvents.HandleAvatarAction(it)) }
-        )
-
-        AsyncActionView(
-            async = state.saveAction,
-            progressDialog = {
-                AsyncActionViewDefaults.ProgressDialog(
-                    progressText = stringResource(R.string.screen_edit_profile_updating_details),
-                )
-            },
-            onSuccess = { },
-            errorTitle = { stringResource(R.string.screen_edit_profile_error_title) },
-            errorMessage = { stringResource(R.string.screen_edit_profile_error) },
-            onErrorDismiss = { state.eventSink(EditUserProfileEvents.CancelSaveChanges) },
         )
     }
     PermissionsView(

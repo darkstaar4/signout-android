@@ -12,6 +12,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.RoomMember
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableList
 
 data class RoomMemberListState(
@@ -21,6 +22,7 @@ data class RoomMemberListState(
     val isSearchActive: Boolean,
     val canInvite: Boolean,
     val moderationState: RoomMemberModerationState,
+    val userMappingService: UserMappingService,
     val eventSink: (RoomMemberListEvents) -> Unit,
 )
 

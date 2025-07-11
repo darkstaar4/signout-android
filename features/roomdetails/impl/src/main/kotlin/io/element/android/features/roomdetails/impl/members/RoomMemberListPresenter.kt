@@ -34,6 +34,7 @@ import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.matrix.api.room.toMatrixUser
 import io.element.android.libraries.matrix.ui.room.canInviteAsState
 import io.element.android.libraries.matrix.ui.room.roomMemberIdentityStateChange
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
@@ -50,6 +51,7 @@ class RoomMemberListPresenter @Inject constructor(
     private val coroutineDispatchers: CoroutineDispatchers,
     private val roomMembersModerationPresenter: Presenter<RoomMemberModerationState>,
     private val encryptionService: EncryptionService,
+    private val userMappingService: UserMappingService,
 ) : Presenter<RoomMemberListState> {
     @Composable
     override fun present(): RoomMemberListState {
@@ -171,6 +173,7 @@ class RoomMemberListPresenter @Inject constructor(
             isSearchActive = isSearchActive,
             canInvite = canInvite,
             moderationState = roomModerationState,
+            userMappingService = userMappingService,
             eventSink = { handleEvents(it) },
         )
     }

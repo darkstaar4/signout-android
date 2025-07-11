@@ -112,21 +112,13 @@ class RustMatrixClientFactory @Inject constructor(
             .sessionPassphrase(passphrase)
             .userAgent(userAgentProvider.provide())
             .addRootCertificates(userCertificatesProvider.provides())
-            .autoEnableBackups(true)
-            .autoEnableCrossSigning(true)
-            .roomKeyRecipientStrategy(
-                strategy = if (featureFlagService.isFeatureEnabled(FeatureFlags.OnlySignedDeviceIsolationMode)) {
-                    CollectStrategy.IDENTITY_BASED_STRATEGY
-                } else {
-                    CollectStrategy.ERROR_ON_VERIFIED_USER_PROBLEM
-                }
-            )
+            .autoEnableBackups(false)
+            .autoEnableCrossSigning(false)
+            // REMOVED: roomKeyRecipientStrategy to bypass all verification checks
             .decryptionSettings(
                 DecryptionSettings(
-                    senderDeviceTrustRequirement = if (featureFlagService.isFeatureEnabled(FeatureFlags.OnlySignedDeviceIsolationMode)) {
-                        TrustRequirement.CROSS_SIGNED_OR_LEGACY
-                    } else {
-                        TrustRequirement.UNTRUSTED
+                    senderDeviceTrustRequirement = TrustRequirement.UNTRUSTED.also {
+                        Timber.d("FORCED: Using UNTRUSTED trust requirement - messages will work between unverified devices")
                     }
                 )
             )

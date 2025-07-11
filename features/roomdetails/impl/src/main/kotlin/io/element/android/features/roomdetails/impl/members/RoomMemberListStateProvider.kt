@@ -16,7 +16,11 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
+import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 internal class RoomMemberListStateProvider : PreviewParameterProvider<RoomMemberListState> {
     override val values: Sequence<RoomMemberListState>
@@ -127,6 +131,7 @@ internal fun aRoomMemberListState(
     isSearchActive = false,
     canInvite = false,
     moderationState = moderationState,
+    userMappingService = FakeUserMappingService(),
     eventSink = {}
 )
 
@@ -186,3 +191,33 @@ fun aVictor() = aRoomMember(UserId("@victor:server.org"), "Victor", membership =
 fun aWalter() = aRoomMember(UserId("@walter:server.org"), "Walter", membership = RoomMembershipState.INVITE)
 
 private fun RoomMember.withIdentity(identityState: IdentityState? = null) = RoomMemberWithIdentityState(this, identityState)
+
+private class FakeUserMappingService : UserMappingService {
+    override val userMappingUpdates: Flow<UserMapping> = emptyFlow()
+    
+    override fun getUserMapping(matrixUsername: String): UserMapping? = null
+    
+    override fun addUserFromCognitoData(
+        matrixUserId: String,
+        matrixUsername: String,
+        cognitoUsername: String,
+        givenName: String,
+        familyName: String,
+        email: String,
+        specialty: String?,
+        officeCity: String?,
+        avatarUrl: String?
+    ) = Unit
+    
+    override fun addUserMapping(userMapping: UserMapping) = Unit
+    
+    override fun searchUsers(query: String): List<UserMapping> = emptyList()
+    
+    override fun searchUsers(query: String, limit: Long): List<UserMapping> = emptyList()
+    
+    override fun removeUser(matrixUsername: String) = Unit
+    
+    override fun clearAll() = Unit
+    
+    override fun getCachedMappingsCount(): Int = 0
+}
