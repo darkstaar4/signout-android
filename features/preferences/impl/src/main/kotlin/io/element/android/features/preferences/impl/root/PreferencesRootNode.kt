@@ -37,6 +37,7 @@ class PreferencesRootNode @AssistedInject constructor(
         fun onSecureBackupClick()
         fun onOpenAnalytics()
         fun onOpenAbout()
+        fun onOpenDonate()
         fun onOpenDeveloperSettings()
         fun onOpenNotificationSettings()
         fun onOpenLockScreenSettings()
@@ -78,6 +79,10 @@ class PreferencesRootNode @AssistedInject constructor(
 
     private fun onOpenAbout() {
         plugins<Callback>().forEach { it.onOpenAbout() }
+    }
+
+    private fun onOpenDonate() {
+        plugins<Callback>().forEach { it.onOpenDonate() }
     }
 
     private fun onManageAccountClick(
@@ -145,6 +150,7 @@ class PreferencesRootNode @AssistedInject constructor(
             onOpenRageShake = { onOpenContactUrl(activity, isDark) },
             onOpenAnalytics = this::onOpenAnalytics,
             onOpenAbout = this::onOpenAbout,
+            onOpenDonate = this::onOpenDonate,
             onSecureBackupClick = this::onSecureBackupClick,
             onOpenDeveloperSettings = this::onOpenDeveloperSettings,
             onOpenAdvancedSettings = this::onOpenAdvancedSettings,

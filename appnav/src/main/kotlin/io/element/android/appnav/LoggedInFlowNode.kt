@@ -7,6 +7,7 @@
 
 package io.element.android.appnav
 
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
@@ -80,6 +81,7 @@ import io.element.android.libraries.matrix.api.verification.SessionVerificationS
 import io.element.android.libraries.matrix.api.verification.VerificationRequest
 import io.element.android.libraries.matrix.impl.di.SessionMatrixSetup
 import io.element.android.services.appnavstate.api.AppNavigationStateService
+import io.element.android.services.toolbox.api.intent.ExternalIntentLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -128,6 +130,7 @@ class LoggedInFlowNode @AssistedInject constructor(
     private val mediaPreviewConfigMigration: MediaPreviewConfigMigration,
     snackbarDispatcher: SnackbarDispatcher,
     private val sessionMatrixSetup: SessionMatrixSetup,
+    private val externalIntentLauncher: ExternalIntentLauncher,
 ) : BaseFlowNode<LoggedInFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = NavTarget.Placeholder,
@@ -392,6 +395,14 @@ class LoggedInFlowNode @AssistedInject constructor(
 
                     override fun onSecureBackupClick() {
                         backstack.push(NavTarget.SecureBackup())
+                    }
+
+                    override fun onOpenDonate() {
+                        // Launch DonateActivity using the correct package name for debug build
+                        val intent = Intent().apply {
+                            setClassName("io.element.android.x.debug", "io.element.android.DonateActivity")
+                        }
+                        externalIntentLauncher.launch(intent)
                     }
 
                     override fun onOpenRoomNotificationSettings(roomId: RoomId) {

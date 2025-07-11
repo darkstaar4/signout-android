@@ -50,6 +50,7 @@ fun PreferencesRootView(
     onOpenRageShake: () -> Unit,
     onOpenLockScreenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenDonate: () -> Unit,
     onOpenDeveloperSettings: () -> Unit,
     onOpenAdvancedSettings: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
@@ -106,6 +107,7 @@ fun PreferencesRootView(
         GeneralSection(
             state = state,
             onOpenAbout = onOpenAbout,
+            onOpenDonate = onOpenDonate,
             onOpenAnalytics = onOpenAnalytics,
             onOpenRageShake = onOpenRageShake,
             onOpenAdvancedSettings = onOpenAdvancedSettings,
@@ -193,20 +195,16 @@ private fun ColumnScope.ManageAccountSection(
 @Composable
 private fun ColumnScope.GeneralSection(
     state: PreferencesRootState,
-    onOpenAbout: () -> Unit,
     onOpenAnalytics: () -> Unit,
     onOpenRageShake: () -> Unit,
     onOpenAdvancedSettings: () -> Unit,
     onOpenDeveloperSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenDonate: () -> Unit,
     onSignOutClick: () -> Unit,
     onDeactivateClick: () -> Unit,
     onSecureBackupClick: () -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(stringResource(id = CommonStrings.common_about)) },
-        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Info())),
-        onClick = onOpenAbout,
-    )
     if (state.canReportBug) {
         ListItem(
             headlineContent = { Text(stringResource(id = CommonStrings.common_report_a_problem)) },
@@ -229,6 +227,16 @@ private fun ColumnScope.GeneralSection(
     if (state.showDeveloperSettings) {
         DeveloperPreferencesView(onOpenDeveloperSettings)
     }
+    ListItem(
+        headlineContent = { Text(stringResource(id = R.string.screen_donate_title)) },
+        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Favourite())),
+        onClick = onOpenDonate,
+    )
+    ListItem(
+        headlineContent = { Text(stringResource(id = CommonStrings.common_about)) },
+        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Info())),
+        onClick = onOpenAbout,
+    )
     ListItem(
         headlineContent = { Text(stringResource(id = CommonStrings.common_encryption)) },
         leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Key())),
@@ -308,6 +316,7 @@ private fun ContentToPreview(matrixUser: MatrixUser) {
         onOpenDeveloperSettings = {},
         onOpenAdvancedSettings = {},
         onOpenAbout = {},
+        onOpenDonate = {},
         onSecureBackupClick = {},
         onManageAccountClick = {},
         onOpenNotificationSettings = {},

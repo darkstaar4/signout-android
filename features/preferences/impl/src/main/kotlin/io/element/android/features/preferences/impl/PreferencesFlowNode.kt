@@ -136,6 +136,10 @@ class PreferencesFlowNode @AssistedInject constructor(
                         backstack.push(NavTarget.About)
                     }
 
+                    override fun onOpenDonate() {
+                        plugins<PreferencesEntryPoint.Callback>().forEach { it.onOpenDonate() }
+                    }
+
                     override fun onOpenDeveloperSettings() {
                         backstack.push(NavTarget.DeveloperSettings)
                     }

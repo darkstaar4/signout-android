@@ -9,4 +9,25 @@
     <color name="splashscreen_bg_dark">#FF101317</color>
     <!-- Must be equal to LightColorTokens.colorThemeBg -->
     <color name="splashscreen_bg_light">#FFFFFFFF</color>
+    
+    <!-- Donation page colors -->
+    <color name="primary_blue">#3B82F6</color>
+    <color name="primary_purple">#8B5CF6</color>
+    <color name="green_primary">#10B981</color>
+    <color name="green_secondary">#14B8A6</color>
+    <color name="blue_light">#EFF6FF</color>
+    <color name="indigo_light">#E0E7FF</color>
+    <color name="green_light">#F0FDF4</color>
+    <color name="green_border">#BBF7D0</color>
+    <color name="blue_bg">#EFF6FF</color>
+    <color name="blue_border">#BFDBFE</color>
+    <color name="purple_light">#FAF5FF</color>
+    <color name="pink_light">#FDF2F8</color>
+    <color name="gray_50">#F9FAFB</color>
+    <color name="gray_100">#F3F4F6</color>
+    <color name="gray_600">#4B5563</color>
+    <color name="gray_700">#374151</color>
+    <color name="gray_800">#1F2937</color>
+    <color name="gray_900">#111827</color>
+    <color name="white">#FFFFFF</color>
 </resources>

@@ -43,6 +43,7 @@ interface PreferencesEntryPoint : FeatureEntryPoint {
     interface Callback : Plugin {
         fun onOpenBugReport()
         fun onSecureBackupClick()
+        fun onOpenDonate()
         fun onOpenRoomNotificationSettings(roomId: RoomId)
         fun navigateTo(sessionId: SessionId, roomId: RoomId, eventId: EventId)
     }
