@@ -27,6 +27,7 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableList
 
 @Immutable
@@ -58,6 +59,7 @@ data class MessagesState(
     val dmUserMapping: UserMapping?,
     val roomMemberModerationState: RoomMemberModerationState,
     val successorRoom: SuccessorRoom?,
+    val userMappingService: UserMappingService,
     val eventSink: (MessagesEvents) -> Unit
 ) {
     val isTombstoned = successorRoom != null

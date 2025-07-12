@@ -75,7 +75,7 @@ class DefaultRoomLastMessageFormatter @Inject constructor(
                 message.prefixIfNeeded(senderDisambiguatedDisplayName, isDmRoom, isOutgoing)
             }
             is RoomMembershipContent -> {
-                roomMembershipContentFormatter.format(content, senderDisambiguatedDisplayName, isOutgoing)
+                roomMembershipContentFormatter.format(content, senderDisambiguatedDisplayName, isOutgoing, event.sender.value)
             }
             is ProfileChangeContent -> {
                 profileChangeContentFormatter.format(content, event.sender, senderDisambiguatedDisplayName, isOutgoing)

@@ -301,6 +301,7 @@ class MessagesPresenter @AssistedInject constructor(
             dmUserMapping = dmUserMapping,
             roomMemberModerationState = roomMemberModerationState,
             successorRoom = roomInfo.successorRoom,
+            userMappingService = userMappingService,
             eventSink = { handleEvents(it) }
         )
     }

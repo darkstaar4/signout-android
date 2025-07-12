@@ -7,6 +7,7 @@
 
 package io.element.android.features.messages.impl
 
+import android.view.View
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -21,17 +22,31 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,9 +119,11 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.matrix.api.user.MatrixUser
+import io.element.android.libraries.matrix.ui.messages.sender.LocalUserMappingService
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import io.element.android.wysiwyg.link.Link
 import kotlinx.collections.immutable.ImmutableList
 import timber.log.Timber
@@ -171,16 +188,87 @@ fun MessagesView(
     }
 
     fun onEmojiReactionClick(emoji: String, event: TimelineItem.Event) {
-        state.eventSink(MessagesEvents.ToggleReaction(emoji, event.eventOrTransactionId))
+        state.eventSink(
+            MessagesEvents.ToggleReaction(emoji, event.eventOrTransactionId)
+        )
     }
 
     fun onEmojiReactionLongClick(emoji: String, event: TimelineItem.Event) {
-        if (event.eventId == null) return
-        state.reactionSummaryState.eventSink(ReactionSummaryEvents.ShowReactionSummary(event.eventId, event.reactionsState.reactions, emoji))
+        state.reactionSummaryState.eventSink(
+            ReactionSummaryEvents.ShowReactionSummary(
+                event.eventId ?: return,
+                event.reactionsState.reactions,
+                emoji
+            )
+        )
     }
 
     fun onMoreReactionsClick(event: TimelineItem.Event) {
         state.customReactionState.eventSink(CustomReactionEvents.ShowCustomReactionSheet(event))
+    }
+
+    fun onSwipeToReply(targetEvent: TimelineItem.Event) {
+        state.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, targetEvent))
+    }
+
+    // Provide UserMappingService through CompositionLocal
+    CompositionLocalProvider(
+        LocalUserMappingService provides state.userMappingService
+    ) {
+        MessagesViewContent(
+            state = state,
+            onBackClick = onBackClick,
+            onRoomDetailsClick = onRoomDetailsClick,
+            onContentClick = ::onContentClick,
+            onMessageLongClick = ::onMessageLongClick,
+            onActionSelected = ::onActionSelected,
+            onEmojiReactionClick = ::onEmojiReactionClick,
+            onEmojiReactionLongClick = ::onEmojiReactionLongClick,
+            onMoreReactionsClick = ::onMoreReactionsClick,
+            onSwipeToReply = ::onSwipeToReply,
+            onUserDataClick = onUserDataClick,
+            onLinkClick = onLinkClick,
+            onSendLocationClick = onSendLocationClick,
+            onCreatePollClick = onCreatePollClick,
+            onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
+            onJoinCallClick = onJoinCallClick,
+            forceJumpToBottomVisibility = forceJumpToBottomVisibility,
+            knockRequestsBannerView = knockRequestsBannerView,
+            snackbarHostState = snackbarHostState,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun MessagesViewContent(
+    state: MessagesState,
+    onBackClick: () -> Unit,
+    onRoomDetailsClick: () -> Unit,
+    onContentClick: (TimelineItem.Event) -> Unit,
+    onMessageLongClick: (TimelineItem.Event) -> Unit,
+    onActionSelected: (TimelineItemAction, TimelineItem.Event) -> Unit,
+    onEmojiReactionClick: (String, TimelineItem.Event) -> Unit,
+    onEmojiReactionLongClick: (String, TimelineItem.Event) -> Unit,
+    onMoreReactionsClick: (TimelineItem.Event) -> Unit,
+    onSwipeToReply: (TimelineItem.Event) -> Unit,
+    onUserDataClick: (UserId) -> Unit,
+    onLinkClick: (String, Boolean) -> Unit,
+    onSendLocationClick: () -> Unit,
+    onCreatePollClick: () -> Unit,
+    onViewAllPinnedMessagesClick: () -> Unit,
+    onJoinCallClick: () -> Unit,
+    forceJumpToBottomVisibility: Boolean,
+    knockRequestsBannerView: @Composable () -> Unit,
+    snackbarHostState: androidx.compose.material3.SnackbarHostState,
+    modifier: Modifier = Modifier,
+) {
+    // This is needed because the composer is inside an AndroidView that can't be affected by the FocusManager in Compose
+    val localView = LocalView.current
+
+    fun hidingKeyboard(block: () -> Unit) {
+        localView.hideKeyboard()
+        block()
     }
 
     val expandableState = rememberExpandableBottomSheetLayoutState()
@@ -213,10 +301,10 @@ fun MessagesView(
                             .padding(padding)
                             .consumeWindowInsets(padding)
                     ) {
-                        MessagesViewContent(
+                        MessagesViewMainContent(
                             state = state,
-                            onContentClick = ::onContentClick,
-                            onMessageLongClick = ::onMessageLongClick,
+                            onContentClick = onContentClick,
+                            onMessageLongClick = onMessageLongClick,
                             onUserDataClick = {
                                 hidingKeyboard {
                                     state.eventSink(MessagesEvents.OnUserClicked(it))
@@ -230,17 +318,15 @@ fun MessagesView(
                                     state.linkState.eventSink(LinkEvents.OnLinkClick(link))
                                 }
                             },
-                            onReactionClick = ::onEmojiReactionClick,
-                            onReactionLongClick = ::onEmojiReactionLongClick,
-                            onMoreReactionsClick = ::onMoreReactionsClick,
+                            onReactionClick = onEmojiReactionClick,
+                            onReactionLongClick = onEmojiReactionLongClick,
+                            onMoreReactionsClick = onMoreReactionsClick,
                             onReadReceiptClick = { event ->
                                 state.readReceiptBottomSheetState.eventSink(ReadReceiptBottomSheetEvents.EventSelected(event))
                             },
                             onSendLocationClick = onSendLocationClick,
                             onCreatePollClick = onCreatePollClick,
-                            onSwipeToReply = { targetEvent ->
-                                state.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, targetEvent))
-                            },
+                            onSwipeToReply = onSwipeToReply,
                             forceJumpToBottomVisibility = forceJumpToBottomVisibility,
                             onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
                             onJoinCallClick = onJoinCallClick,
@@ -297,11 +383,11 @@ fun MessagesView(
 
     ActionListView(
         state = state.actionListState,
-        onSelectAction = ::onActionSelected,
+        onSelectAction = onActionSelected,
         onCustomReactionClick = { event ->
             state.customReactionState.eventSink(CustomReactionEvents.ShowCustomReactionSheet(event))
         },
-        onEmojiReactionClick = ::onEmojiReactionClick,
+        onEmojiReactionClick = onEmojiReactionClick,
         onVerifiedUserSendFailureClick = { event ->
             state.timelineState.eventSink(TimelineEvents.ComputeVerifiedUserSendFailure(event))
         },
@@ -317,7 +403,7 @@ fun MessagesView(
     ReactionSummaryView(state = state.reactionSummaryState)
     ReadReceiptBottomSheet(
         state = state.readReceiptBottomSheetState,
-        onUserDataClick = onUserDataClick,
+        onUserDataClick = { userId -> onUserDataClick(userId) },
     )
     ReinviteDialog(state = state)
     LinkView(
@@ -343,7 +429,7 @@ private fun ReinviteDialog(state: MessagesState) {
 }
 
 @Composable
-private fun MessagesViewContent(
+private fun MessagesViewMainContent(
     state: MessagesState,
     onContentClick: (TimelineItem.Event) -> Unit,
     onUserDataClick: (MatrixUser) -> Unit,

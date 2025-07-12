@@ -142,6 +142,34 @@ class SessionMatrixSetup @Inject constructor(
                 Timber.e(e, "SessionMatrixSetup: Failed to populate AWS backend user mapping")
             }
         }
+
+        // Set up periodic refresh of user mappings
+        coroutineScope.launch {
+            try {
+                // Wait 30 seconds before starting periodic refresh
+                kotlinx.coroutines.delay(30_000)
+                
+                while (true) {
+                    try {
+                        // Refresh current user mapping every 5 minutes
+                        cognitoUserIntegrationService.populateCurrentUserMapping()
+                        Timber.d("SessionMatrixSetup: Periodic refresh of user mappings completed")
+                        
+                        // Trigger room list refresh after periodic update
+                        matrixClient.roomListService.allRooms.rebuildSummaries()
+                        
+                        // Wait 5 minutes before next refresh
+                        kotlinx.coroutines.delay(300_000)
+                    } catch (e: Exception) {
+                        Timber.w(e, "SessionMatrixSetup: Error during periodic user mapping refresh")
+                        // Wait 1 minute before retrying
+                        kotlinx.coroutines.delay(60_000)
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "SessionMatrixSetup: Failed to set up periodic user mapping refresh")
+            }
+        }
     }
 }
 

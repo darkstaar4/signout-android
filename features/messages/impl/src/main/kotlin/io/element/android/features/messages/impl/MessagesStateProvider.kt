@@ -45,8 +45,34 @@ import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.aTextEditorStateRich
 import io.element.android.libraries.usersearch.api.UserMapping
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
+// Fake UserMappingService for testing purposes
+private class FakeUserMappingService : UserMappingService {
+    override fun getUserMapping(matrixUsername: String): UserMapping? = null
+    override fun addUserMapping(userMapping: UserMapping) {}
+    override val userMappingUpdates: Flow<UserMapping> = emptyFlow()
+    override fun addUserFromCognitoData(
+        matrixUserId: String,
+        matrixUsername: String,
+        cognitoUsername: String,
+        givenName: String,
+        familyName: String,
+        email: String,
+        specialty: String?,
+        officeCity: String?,
+        avatarUrl: String?
+    ) {}
+    override fun searchUsers(query: String): List<UserMapping> = emptyList()
+    override fun searchUsers(query: String, limit: Long): List<UserMapping> = emptyList()
+    override fun removeUser(matrixUsername: String) {}
+    override fun clearAll() {}
+    override fun getCachedMappingsCount(): Int = 0
+}
 
 open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
     override val values: Sequence<MessagesState>
@@ -111,6 +137,7 @@ fun aMessagesState(
     dmUserMapping: UserMapping? = null,
     roomMemberModerationState: RoomMemberModerationState = aRoomMemberModerationState(),
     successorRoom: SuccessorRoom? = null,
+    userMappingService: UserMappingService = FakeUserMappingService(),
     eventSink: (MessagesEvents) -> Unit = {},
 ) = MessagesState(
     roomId = RoomId("!id:domain"),
@@ -140,6 +167,7 @@ fun aMessagesState(
     dmUserMapping = dmUserMapping,
     roomMemberModerationState = roomMemberModerationState,
     successorRoom = successorRoom,
+    userMappingService = userMappingService,
     eventSink = eventSink,
 )
 

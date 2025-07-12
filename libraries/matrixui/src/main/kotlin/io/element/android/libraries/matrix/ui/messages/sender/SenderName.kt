@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -33,8 +34,15 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.item.event.ProfileTimelineDetails
+import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
+
+/**
+ * CompositionLocal to provide UserMappingService to child composables in matrixui
+ */
+val LocalUserMappingService = staticCompositionLocalOf<UserMappingService?> { null }
 
 // https://www.figma.com/file/Ni6Ii8YKtmXCKYNE90cC67/Timeline-(new)?type=design&node-id=917-80169&mode=design&t=A0CJCBbMqR8NOwUQ-0
 @Composable
@@ -46,12 +54,36 @@ fun SenderName(
     currentUserId: UserId? = null,
 ) {
     val context = LocalContext.current
-    var cognitoDisplayName by remember { mutableStateOf<String?>(null) }
+    val userMappingService = LocalUserMappingService.current
+    var enhancedDisplayName by remember { mutableStateOf<String?>(null) }
     
-    // Check if this is the current user and get their Cognito display name
-    LaunchedEffect(senderId, currentUserId) {
-        if (senderId == currentUserId) {
-            cognitoDisplayName = getCognitoDisplayName(context)
+    // Get enhanced display name for any user using UserMappingService
+    LaunchedEffect(senderId, userMappingService) {
+        if (userMappingService != null) {
+            try {
+                val username = senderId.value.substringAfter("@").substringBefore(":")
+                val userMapping = userMappingService.getUserMapping(username)
+                
+                if (userMapping != null) {
+                    enhancedDisplayName = userMapping.displayName
+                    Timber.d("SenderName: Found enhanced display name for $username: ${userMapping.displayName}")
+                } else {
+                    Timber.d("SenderName: No enhanced display name found for $username")
+                    // For current user, try to get from Cognito as fallback
+                    if (senderId == currentUserId) {
+                        enhancedDisplayName = getCognitoDisplayName(context)
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "SenderName: Error getting enhanced display name for ${senderId.value}")
+                // For current user, try to get from Cognito as fallback
+                if (senderId == currentUserId) {
+                    enhancedDisplayName = getCognitoDisplayName(context)
+                }
+            }
+        } else if (senderId == currentUserId) {
+            // Fallback to Cognito for current user if UserMappingService is not available
+            enhancedDisplayName = getCognitoDisplayName(context)
         }
     }
     
@@ -64,24 +96,18 @@ fun SenderName(
             is ProfileTimelineDetails.Error,
             ProfileTimelineDetails.Pending,
             ProfileTimelineDetails.Unavailable -> {
-                MainText(text = senderId.value, mode = senderNameMode)
+                MainText(text = enhancedDisplayName ?: senderId.value, mode = senderNameMode)
             }
             is ProfileTimelineDetails.Ready -> {
                 val displayName = senderProfile.displayName
                 
-                // Use Cognito display name for current user, otherwise use Matrix display name
-                val nameToShow = if (senderId == currentUserId && !cognitoDisplayName.isNullOrEmpty()) {
-                    cognitoDisplayName!!
-                } else if (displayName.isNullOrEmpty()) {
-                    senderId.value
-                } else {
-                    displayName
-                }
+                // Priority: Enhanced display name > Matrix display name > User ID
+                val nameToShow = enhancedDisplayName ?: displayName ?: senderId.value
                 
                 MainText(text = nameToShow, mode = senderNameMode)
                 
-                // Only show secondary text (Matrix ID) if not the current user or if display name is ambiguous
-                if (senderId != currentUserId && senderProfile.displayNameAmbiguous && !displayName.isNullOrEmpty()) {
+                // Only show secondary text (Matrix ID) if display name is ambiguous and we're not using enhanced name
+                if (enhancedDisplayName == null && senderProfile.displayNameAmbiguous && !displayName.isNullOrEmpty()) {
                     SecondaryText(text = senderId.value, mode = senderNameMode)
                 }
             }

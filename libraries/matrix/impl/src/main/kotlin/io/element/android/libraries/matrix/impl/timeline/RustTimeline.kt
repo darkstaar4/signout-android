@@ -43,6 +43,7 @@ import io.element.android.libraries.matrix.impl.timeline.item.event.TimelineEven
 import io.element.android.libraries.matrix.impl.timeline.item.virtual.VirtualTimelineItemMapper
 import io.element.android.libraries.matrix.impl.timeline.postprocessor.LastForwardIndicatorsPostProcessor
 import io.element.android.libraries.matrix.impl.timeline.postprocessor.LoadingIndicatorsPostProcessor
+import io.element.android.libraries.matrix.impl.timeline.postprocessor.MembershipChangeFilterPostProcessor
 import io.element.android.libraries.matrix.impl.timeline.postprocessor.RoomBeginningPostProcessor
 import io.element.android.libraries.matrix.impl.timeline.postprocessor.TypingNotificationPostProcessor
 import io.element.android.libraries.matrix.impl.timeline.reply.InReplyToMapper
@@ -120,6 +121,7 @@ class RustTimeline(
     )
 
     private val roomBeginningPostProcessor = RoomBeginningPostProcessor(mode)
+    private val membershipChangeFilterPostProcessor = MembershipChangeFilterPostProcessor()
     private val loadingIndicatorsPostProcessor = LoadingIndicatorsPostProcessor(systemClock)
     private val lastForwardIndicatorsPostProcessor = LastForwardIndicatorsPostProcessor(mode)
     private val typingNotificationPostProcessor = TypingNotificationPostProcessor(mode)
@@ -220,6 +222,9 @@ class RustTimeline(
                         roomCreator = roomCreator,
                         hasMoreToLoadBackwards = backwardPaginationStatus.hasMoreToLoad,
                     )
+                }
+                .let { items ->
+                    membershipChangeFilterPostProcessor.process(items = items)
                 }
                 .let { items ->
                     loadingIndicatorsPostProcessor.process(

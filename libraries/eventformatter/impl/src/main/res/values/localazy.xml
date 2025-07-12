@@ -24,8 +24,8 @@
   <string name="state_event_room_created">"%1$s created the room"</string>
   <string name="state_event_room_created_by_you">"You created the room"</string>
   <string name="state_event_room_invite">"%1$s invited %2$s"</string>
-  <string name="state_event_room_invite_accepted">"%1$s accepted the invite"</string>
-  <string name="state_event_room_invite_accepted_by_you">"You accepted the invite"</string>
+  <string name="state_event_room_invite_accepted">"%1$s joined the chat"</string>
+  <string name="state_event_room_invite_accepted_by_you">"You joined the chat"</string>
   <string name="state_event_room_invite_by_you">"You invited %1$s"</string>
   <string name="state_event_room_invite_you">"%1$s invited you"</string>
   <string name="state_event_room_join">"%1$s joined the room"</string>

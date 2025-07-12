@@ -453,11 +453,11 @@ class DefaultBaseRoomLastMessageFormatterTest {
 
         val youAcceptedInviteEvent = createRoomEvent(sentByYou = true, senderDisplayName = null, content = youContent)
         val youAcceptedInvite = formatter.format(youAcceptedInviteEvent, false)
-        assertThat(youAcceptedInvite).isEqualTo("You accepted the invite")
+        assertThat(youAcceptedInvite).isEqualTo("You joined the chat")
 
         val someoneAcceptedInviteEvent = createRoomEvent(sentByYou = false, senderDisplayName = otherName, content = someoneContent)
         val someoneAcceptedInvite = formatter.format(someoneAcceptedInviteEvent, false)
-        assertThat(someoneAcceptedInvite).isEqualTo("$otherName accepted the invite")
+        assertThat(someoneAcceptedInvite).isEqualTo("$otherName joined the chat")
     }
 
     @Test

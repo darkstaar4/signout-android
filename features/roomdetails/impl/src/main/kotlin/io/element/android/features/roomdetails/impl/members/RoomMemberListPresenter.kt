@@ -35,6 +35,7 @@ import io.element.android.libraries.matrix.api.room.toMatrixUser
 import io.element.android.libraries.matrix.ui.room.canInviteAsState
 import io.element.android.libraries.matrix.ui.room.roomMemberIdentityStateChange
 import io.element.android.libraries.usersearch.api.UserMappingService
+import io.element.android.libraries.usersearch.api.CognitoUserIntegrationService
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
@@ -43,6 +44,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 class RoomMemberListPresenter @Inject constructor(
@@ -52,6 +55,7 @@ class RoomMemberListPresenter @Inject constructor(
     private val roomMembersModerationPresenter: Presenter<RoomMemberModerationState>,
     private val encryptionService: EncryptionService,
     private val userMappingService: UserMappingService,
+    private val cognitoUserIntegrationService: CognitoUserIntegrationService,
 ) : Presenter<RoomMemberListState> {
     @Composable
     override fun present(): RoomMemberListState {
@@ -115,6 +119,26 @@ class RoomMemberListPresenter @Inject constructor(
                     AsyncData.Loading(result)
                 } else {
                     AsyncData.Success(result)
+                }
+                
+                // Trigger user discovery for all members without mappings
+                launch {
+                    val allMembers = membersState.roomMembers().orEmpty()
+                    allMembers.forEach { member ->
+                        val username = member.userId.value.substringAfter("@").substringBefore(":")
+                        val existingMapping = userMappingService.getUserMapping(username)
+                        if (existingMapping == null) {
+                            try {
+                                Timber.d("RoomMemberListPresenter: Triggering discovery for user $username")
+                                cognitoUserIntegrationService.discoverUserMapping(
+                                    matrixUserId = member.userId.value,
+                                    matrixDisplayName = member.displayName
+                                )
+                            } catch (e: Exception) {
+                                Timber.w(e, "RoomMemberListPresenter: Failed to discover user mapping for $username")
+                            }
+                        }
+                    }
                 }
             }
         }

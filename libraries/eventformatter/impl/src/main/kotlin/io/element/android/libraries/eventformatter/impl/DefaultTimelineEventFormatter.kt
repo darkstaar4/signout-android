@@ -44,7 +44,7 @@ class DefaultTimelineEventFormatter @Inject constructor(
         val senderDisambiguatedDisplayName = event.senderProfile.getDisambiguatedDisplayName(event.sender)
         return when (val content = event.content) {
             is RoomMembershipContent -> {
-                roomMembershipContentFormatter.format(content, senderDisambiguatedDisplayName, isOutgoing)
+                roomMembershipContentFormatter.format(content, senderDisambiguatedDisplayName, isOutgoing, event.sender.value)
             }
             is ProfileChangeContent -> {
                 profileChangeContentFormatter.format(content, event.sender, senderDisambiguatedDisplayName, isOutgoing)

@@ -72,6 +72,7 @@ import io.element.android.libraries.matrix.ui.components.MatrixUserRow
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.usersearch.api.UserMappingService
 import kotlinx.collections.immutable.ImmutableList
+import timber.log.Timber
 import kotlinx.collections.immutable.persistentListOf
 
 private enum class SelectedSection {
@@ -317,24 +318,36 @@ private fun RoomMemberListItem(
         RoomMember.Role.USER -> null
     }
 
-    // Get enhanced display name from user mapping service
+    // Get enhanced display name from user mapping service - make it reactive
     var enhancedMatrixUser by remember { mutableStateOf(roomMemberWithIdentity.roomMember.toMatrixUser()) }
     
-    LaunchedEffect(roomMemberWithIdentity.roomMember.userId) {
+    LaunchedEffect(roomMemberWithIdentity.roomMember.userId, userMappingService) {
         try {
             val username = roomMemberWithIdentity.roomMember.userId.value.substringAfter("@").substringBefore(":")
-            val userMapping = userMappingService.getUserMapping(username)
             
-            if (userMapping != null) {
-                // Create enhanced MatrixUser with user mapping display name
-                enhancedMatrixUser = MatrixUser(
-                    userId = roomMemberWithIdentity.roomMember.userId,
-                    displayName = userMapping.displayName, // This will be "RaceX Cars", "Nabil IC", etc.
-                    avatarUrl = roomMemberWithIdentity.roomMember.avatarUrl,
-                )
+            // Keep checking for mapping updates
+            while (true) {
+                val userMapping = userMappingService.getUserMapping(username)
+                
+                if (userMapping != null) {
+                    // Create enhanced MatrixUser with user mapping display name
+                    val newEnhancedUser = MatrixUser(
+                        userId = roomMemberWithIdentity.roomMember.userId,
+                        displayName = userMapping.displayName, // This will be "RaceX Cars", "Nabil IC", etc.
+                        avatarUrl = roomMemberWithIdentity.roomMember.avatarUrl,
+                    )
+                    if (enhancedMatrixUser.displayName != newEnhancedUser.displayName) {
+                        enhancedMatrixUser = newEnhancedUser
+                        Timber.d("RoomMemberListItem: Updated display name for $username: ${userMapping.displayName}")
+                    }
+                    break // Stop checking once we have the mapping
+                } else {
+                    // Wait and check again
+                    kotlinx.coroutines.delay(1000)
+                }
             }
         } catch (e: Exception) {
-            // Fallback to original MatrixUser if user mapping fails
+            Timber.w(e, "RoomMemberListItem: Error getting enhanced display name for ${roomMemberWithIdentity.roomMember.userId.value}")
         }
     }
 

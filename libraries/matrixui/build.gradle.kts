@@ -32,6 +32,7 @@ dependencies {
     implementation(projects.libraries.core)
     implementation(projects.libraries.uiStrings)
     implementation(projects.libraries.testtags)
+    implementation(projects.libraries.usersearch.api)
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
