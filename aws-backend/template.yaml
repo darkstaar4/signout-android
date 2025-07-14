@@ -123,6 +123,36 @@ Resources:
             Path: /api/v1/users/cognito/search
             Method: OPTIONS
 
+  # Presigned URL Function for S3 Document Uploads
+  PresignedUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-presigned-url'
+      CodeUri: lambda/presigned-url/
+      Handler: index.handler
+      Description: 'Generate presigned URLs for S3 document uploads'
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:PutObjectAcl
+              Resource: 'arn:aws:s3:::signout-verification-documents/*'
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /presigned-url
+            Method: POST
+        OptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /presigned-url
+            Method: OPTIONS
+
   # CloudWatch Log Groups
   UserDiscoveryLogGroup:
     Type: AWS::Logs::LogGroup
@@ -134,6 +164,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-user-search'
+      RetentionInDays: 14
+
+  PresignedUrlLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-presigned-url'
       RetentionInDays: 14
 
 Outputs:
@@ -154,6 +190,12 @@ Outputs:
     Value: !Sub 'https://${CognitoUserApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/api/v1/users/cognito/search'
     Export:
       Name: !Sub '${AWS::StackName}-UserSearchEndpoint'
+  
+  PresignedUrlEndpoint:
+    Description: 'Presigned URL endpoint for document uploads'
+    Value: !Sub 'https://${CognitoUserApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/presigned-url'
+    Export:
+      Name: !Sub '${AWS::StackName}-PresignedUrlEndpoint'
   
   UserPoolId:
     Description: 'Cognito User Pool ID used'

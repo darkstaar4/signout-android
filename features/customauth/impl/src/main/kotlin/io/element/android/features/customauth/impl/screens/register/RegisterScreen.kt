@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -88,6 +90,128 @@ private fun FieldError(
             fontSize = 12.sp,
             modifier = Modifier.padding(top = 4.dp),
         )
+    }
+}
+
+@Composable
+private fun DocumentUploadSection(
+    documentUri: android.net.Uri?,
+    isUploading: Boolean,
+    isUploaded: Boolean,
+    onDocumentSelected: (android.net.Uri?) -> Unit,
+) {
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        onDocumentSelected(uri)
+    }
+
+    Column {
+        // Title with warning icon
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = "Verification Required",
+                tint = Color(0xFFEF4444),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Healthcare Verification Required *",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A),
+            )
+        }
+
+        // Description
+        Text(
+            text = "Upload proof of healthcare credentials (ID badge, license copy, etc.). Your account will be deactivated if we cannot verify your healthcare professional status.",
+            fontSize = 14.sp,
+            color = Color(0xFF64748B),
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+
+        // Upload button/status
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !isUploading) {
+                    launcher.launch("*/*")
+                },
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = when {
+                    isUploaded -> Color(0xFFECFDF5)
+                    isUploading -> Color(0xFFF8FAFC)
+                    else -> Color(0xFFF8FAFC)
+                }
+            ),
+            border = BorderStroke(
+                1.dp,
+                when {
+                    isUploaded -> Color(0xFF10B981)
+                    isUploading -> Color(0xFF94A3B8)
+                    else -> Color(0xFFE2E8F0)
+                }
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = when {
+                            isUploaded -> "✓ Document Uploaded"
+                            isUploading -> "Uploading..."
+                            documentUri != null -> "Document Selected"
+                            else -> "Select Document"
+                        },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = when {
+                            isUploaded -> Color(0xFF10B981)
+                            isUploading -> Color(0xFF64748B)
+                            else -> Color(0xFF0F172A)
+                        }
+                    )
+                    
+                    Text(
+                        text = when {
+                            isUploaded -> "Ready to proceed with registration"
+                            isUploading -> "Please wait while we upload your document"
+                            documentUri != null -> "Tap to upload or select a different document"
+                            else -> "Tap to select a document (PDF, JPG, PNG)"
+                        },
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color(0xFF0EA5E9)
+                    )
+                } else if (isUploaded) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Uploaded",
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -772,6 +896,22 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Verification Document Upload Section
+                DocumentUploadSection(
+                    documentUri = state.verificationDocumentUri,
+                    isUploading = state.isUploadingDocument,
+                    isUploaded = state.verificationDocumentUrl != null,
+                    onDocumentSelected = { uri ->
+                        state.eventSink(RegisterEvents.SetVerificationDocument(uri))
+                        // Auto-upload when document is selected
+                        if (uri != null) {
+                            state.eventSink(RegisterEvents.UploadVerificationDocument)
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 // Error Message
                 state.errorMessage?.let { error ->
                     Text(
@@ -921,6 +1061,9 @@ private fun RegisterScreenPreview() {
                     officeCity = "",
                     officeState = "",
                     officeZip = "",
+                    verificationDocumentUri = null,
+                    isUploadingDocument = false,
+                    verificationDocumentUrl = null,
                     isLoading = false,
                     errorMessage = null,
                     fieldErrors = emptyMap(),

@@ -18,4 +18,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["UserSearchFunction"]
 
+[function_build_definitions.1ccf6b05-980a-4fd7-abc2-bf1cb4dc511a]
+codeuri = "/Users/nabilbaig/Documents/SignOut Android-ElemX/aws-backend/lambda/presigned-url"
+runtime = "nodejs18.x"
+architecture = "x86_64"
+handler = "index.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PresignedUrlFunction"]
+
 [layer_build_definitions]

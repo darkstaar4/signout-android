@@ -106,6 +106,8 @@ class CognitoAuthService
             // Matrix credentials (auto-generated)
             val matrixUsername: String? = null,
             val matrixPassword: String? = null,
+            // Verification document URL
+            val verificationDocumentUrl: String? = null,
         )
 
         data class ConfirmResult(
@@ -765,6 +767,9 @@ class CognitoAuthService
                             userData.officeCity?.let { if (it.isNotEmpty()) addAttribute("custom:office_city", it) }
                             userData.officeState?.let { if (it.isNotEmpty()) addAttribute("custom:office_state", it) }
                             userData.officeZip?.let { if (it.isNotEmpty()) addAttribute("custom:office_zip", it) }
+                            
+                            // Add verification document URL if provided
+                            userData.verificationDocumentUrl?.let { if (it.isNotEmpty()) addAttribute("custom:verify_doc_url", it) }
                             
                             // Don't add Matrix credentials yet - they'll be added after verification
                         }

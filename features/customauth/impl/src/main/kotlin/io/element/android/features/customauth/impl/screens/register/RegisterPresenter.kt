@@ -16,10 +16,12 @@ import androidx.compose.runtime.setValue
 import io.element.android.features.customauth.impl.auth.CognitoAuthService
 import io.element.android.features.customauth.impl.auth.CognitoAuthService.UserData
 import io.element.android.features.customauth.impl.auth.MatrixIntegrationService
+import io.element.android.features.customauth.impl.services.S3DocumentService
 import io.element.android.libraries.architecture.Presenter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 class RegisterPresenter
@@ -27,6 +29,7 @@ class RegisterPresenter
     constructor(
         private val cognitoAuthService: CognitoAuthService,
         private val matrixIntegrationService: MatrixIntegrationService,
+        private val s3DocumentService: S3DocumentService,
     ) : Presenter<RegisterState> {
         
         companion object {
@@ -60,6 +63,9 @@ class RegisterPresenter
             var officeCity by remember { mutableStateOf("") }
             var officeState by remember { mutableStateOf("") }
             var officeZip by remember { mutableStateOf("") }
+            var verificationDocumentUri by remember { mutableStateOf<android.net.Uri?>(null) }
+            var isUploadingDocument by remember { mutableStateOf(false) }
+            var verificationDocumentUrl by remember { mutableStateOf<String?>(null) }
             var isLoading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var fieldErrors by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -150,6 +156,29 @@ class RegisterPresenter
                     is RegisterEvents.SetOfficeCity -> officeCity = event.officeCity
                     is RegisterEvents.SetOfficeState -> officeState = event.officeState
                     is RegisterEvents.SetOfficeZip -> officeZip = event.officeZip
+                    is RegisterEvents.SetVerificationDocument -> verificationDocumentUri = event.uri
+                    is RegisterEvents.UploadVerificationDocument -> {
+                        verificationDocumentUri?.let { uri ->
+                            coroutineScope.launch {
+                                isUploadingDocument = true
+                                try {
+                                    val result = s3DocumentService.uploadDocument(uri, username)
+                                    if (result.isSuccess) {
+                                        verificationDocumentUrl = result.getOrNull()
+                                        Timber.d("Document uploaded successfully: $verificationDocumentUrl")
+                                    } else {
+                                        errorMessage = "Failed to upload document. Please try again."
+                                        Timber.e("Document upload failed: ${result.exceptionOrNull()}")
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to upload document. Please try again."
+                                    Timber.e(e, "Document upload error")
+                                } finally {
+                                    isUploadingDocument = false
+                                }
+                            }
+                        }
+                    }
                     is RegisterEvents.ClearError -> errorMessage = null
                     is RegisterEvents.Submit -> {
                         coroutineScope.launch {
@@ -289,7 +318,8 @@ class RegisterPresenter
                                     officeState = officeState,
                                     officeZip = officeZip,
                                     matrixUsername = null,
-                                    matrixPassword = null
+                                    matrixPassword = null,
+                                    verificationDocumentUrl = verificationDocumentUrl
                                 )
                                 
                                 // Only register with Cognito (no Matrix integration yet)
@@ -335,6 +365,9 @@ class RegisterPresenter
                 officeCity = officeCity,
                 officeState = officeState,
                 officeZip = officeZip,
+                verificationDocumentUri = verificationDocumentUri,
+                isUploadingDocument = isUploadingDocument,
+                verificationDocumentUrl = verificationDocumentUrl,
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 fieldErrors = fieldErrors,

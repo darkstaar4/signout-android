@@ -25,6 +25,9 @@ data class RegisterState(
     val officeCity: String,
     val officeState: String,
     val officeZip: String,
+    val verificationDocumentUri: android.net.Uri?,
+    val isUploadingDocument: Boolean,
+    val verificationDocumentUrl: String?,
     val isLoading: Boolean,
     val errorMessage: String?,
     val fieldErrors: Map<String, String>,
@@ -80,6 +83,10 @@ sealed interface RegisterEvents {
     data class SetOfficeState(val officeState: String) : RegisterEvents
 
     data class SetOfficeZip(val officeZip: String) : RegisterEvents
+
+    data class SetVerificationDocument(val uri: android.net.Uri?) : RegisterEvents
+
+    data object UploadVerificationDocument : RegisterEvents
 
     data object Submit : RegisterEvents
 
