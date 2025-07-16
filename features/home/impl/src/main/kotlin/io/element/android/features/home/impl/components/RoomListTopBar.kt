@@ -90,6 +90,7 @@ fun RoomListTopBar(
     displayFilters: Boolean,
     filtersState: RoomListFiltersState,
     canReportBug: Boolean,
+    isAdmin: Boolean,
     modifier: Modifier = Modifier,
 ) {
     DefaultRoomListTopBar(
@@ -105,6 +106,7 @@ fun RoomListTopBar(
         displayFilters = displayFilters,
         filtersState = filtersState,
         canReportBug = canReportBug,
+        isAdmin = isAdmin,
         modifier = modifier,
     )
 }
@@ -124,6 +126,7 @@ private fun DefaultRoomListTopBar(
     displayFilters: Boolean,
     filtersState: RoomListFiltersState,
     canReportBug: Boolean,
+    isAdmin: Boolean,
     modifier: Modifier = Modifier,
 ) {
     // We need this to manually clip the top app bar in preview mode
@@ -269,6 +272,22 @@ private fun DefaultRoomListTopBar(
                                             }
                                         )
                                     }
+                                    if (isAdmin) {
+                                        DropdownMenuItem(
+                                            onClick = {
+                                                showMenu = false
+                                                onMenuActionClick(RoomListMenuAction.AdminDashboard)
+                                            },
+                                            text = { Text("Admin Dashboard") },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = CompoundIcons.Settings(),
+                                                    tint = ElementTheme.colors.iconSecondary,
+                                                    contentDescription = null,
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -336,6 +355,7 @@ internal fun DefaultRoomListTopBarPreview() = ElementPreview {
         displayFilters = true,
         filtersState = aRoomListFiltersState(),
         canReportBug = true,
+        isAdmin = false,
         onMenuActionClick = {},
     )
 }
@@ -356,6 +376,7 @@ internal fun DefaultRoomListTopBarWithIndicatorPreview() = ElementPreview {
         displayFilters = true,
         filtersState = aRoomListFiltersState(),
         canReportBug = true,
+        isAdmin = false,
         onMenuActionClick = {},
     )
 }

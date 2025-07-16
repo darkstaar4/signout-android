@@ -13,6 +13,7 @@ import extension.setupAnvil
 plugins {
     id("io.element.android-compose-library")
     id("kotlin-parcelize")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -37,6 +38,12 @@ dependencies {
     implementation(projects.libraries.designsystem)
     implementation(projects.libraries.matrixui)
     implementation(projects.libraries.uiStrings)
+
+    // JSON serialization
+    implementation(libs.serialization.json)
+
+    // HTTP client
+    implementation(libs.network.okhttp)
 
     implementation(libs.coil)
 

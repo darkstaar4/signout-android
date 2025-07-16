@@ -32,6 +32,7 @@ import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteV
 import io.element.android.features.invite.api.declineandblock.DeclineInviteAndBlockEntryPoint
 import io.element.android.features.logout.api.direct.DirectLogoutView
 import io.element.android.features.reportroom.api.ReportRoomEntryPoint
+
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.deeplink.usecase.InviteFriendsUseCase
@@ -51,6 +52,7 @@ class HomeFlowNode @AssistedInject constructor(
     private val directLogoutView: DirectLogoutView,
     private val reportRoomEntryPoint: ReportRoomEntryPoint,
     private val declineInviteAndBlockUserEntryPoint: DeclineInviteAndBlockEntryPoint,
+
 ) : BaseFlowNode<HomeFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = NavTarget.Root,
@@ -76,6 +78,7 @@ class HomeFlowNode @AssistedInject constructor(
 
         @Parcelize
         data class DeclineInviteAndBlockUser(val inviteData: InviteData) : NavTarget
+
     }
 
     private fun onRoomClick(roomId: RoomId) {
@@ -109,6 +112,15 @@ class HomeFlowNode @AssistedInject constructor(
     private fun onDeclineInviteAndBlockUserClick(roomSummary: RoomListRoomSummary) {
         backstack.push(NavTarget.DeclineInviteAndBlockUser(roomSummary.toInviteData()))
     }
+    
+    private fun onAdminClick() {
+        // Show overlay admin dashboard
+        timber.log.Timber.d("HomeFlowNode: onAdminClick called")
+        plugins<HomeEntryPoint.Callback>().forEach { 
+            timber.log.Timber.d("HomeFlowNode: calling callback.onAdminClick()")
+            it.onAdminClick() 
+        }
+    }
 
     private fun onMenuActionClick(activity: Activity, roomListMenuAction: RoomListMenuAction) {
         when (roomListMenuAction) {
@@ -117,6 +129,9 @@ class HomeFlowNode @AssistedInject constructor(
             }
             RoomListMenuAction.ReportBug -> {
                 plugins<HomeEntryPoint.Callback>().forEach { it.onReportBugClick() }
+            }
+            RoomListMenuAction.AdminDashboard -> {
+                onAdminClick()
             }
         }
     }
@@ -137,6 +152,7 @@ class HomeFlowNode @AssistedInject constructor(
                 onMenuActionClick = { onMenuActionClick(activity, it) },
                 onReportRoomClick = this::onReportRoomClick,
                 onDeclineInviteAndBlockUser = this::onDeclineInviteAndBlockUserClick,
+                onAdminClick = this::onAdminClick,
                 modifier = modifier,
             ) {
                 acceptDeclineInviteView.Render(
@@ -160,6 +176,7 @@ class HomeFlowNode @AssistedInject constructor(
         return when (navTarget) {
             is NavTarget.ReportRoom -> reportRoomEntryPoint.createNode(this, buildContext, navTarget.roomId)
             is NavTarget.DeclineInviteAndBlockUser -> declineInviteAndBlockUserEntryPoint.createNode(this, buildContext, navTarget.inviteData)
+
             NavTarget.Root -> rootNode(buildContext)
         }
     }

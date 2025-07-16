@@ -264,6 +264,7 @@ dependencies {
     }
     allFeaturesImpl(project)
     implementation(projects.features.customauth.api)
+
     implementation(projects.features.migration.api)
     implementation(projects.appnav)
     implementation(projects.appconfig)

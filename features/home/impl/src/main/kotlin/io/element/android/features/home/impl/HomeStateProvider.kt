@@ -53,6 +53,7 @@ internal fun aHomeState(
     roomListState: RoomListState = aRoomListState(),
     canReportBug: Boolean = true,
     isSpaceFeatureEnabled: Boolean = false,
+    isAdmin: Boolean = false,
     directLogoutState: DirectLogoutState = aDirectLogoutState(),
     eventSink: (HomeEvents) -> Unit = {}
 ) = HomeState(
@@ -65,5 +66,6 @@ internal fun aHomeState(
     currentHomeNavigationBarItem = currentHomeNavigationBarItem,
     roomListState = roomListState,
     isSpaceFeatureEnabled = isSpaceFeatureEnabled,
+    isAdmin = isAdmin,
     eventSink = eventSink,
 )

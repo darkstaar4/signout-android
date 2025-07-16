@@ -20,45 +20,78 @@ exports.handler = async (event) => {
     }
     
     try {
-        const { filename, contentType, username } = JSON.parse(event.body || '{}');
+        const { filename, contentType, username, operation } = JSON.parse(event.body || '{}');
         
-        if (!filename || !contentType || !username) {
+        if (!filename || !username) {
             return {
                 statusCode: 400,
                 headers: corsHeaders,
                 body: JSON.stringify({ 
-                    error: 'Missing required fields: filename, contentType, username' 
+                    error: 'Missing required fields: filename, username' 
                 })
             };
         }
         
-        console.log('Generating presigned URL for:', { filename, contentType, username });
+        console.log('Processing request for:', { filename, contentType, username, operation });
         
         const bucketName = 'signout-verification-documents';
         const key = `verification-documents/${filename}`;
         
-        // Generate presigned URL for PUT operation
-        const params = {
-            Bucket: bucketName,
-            Key: key,
-            Expires: 300, // 5 minutes
-            ContentType: contentType,
-            ACL: 'private'
-        };
-        
-        const uploadUrl = s3.getSignedUrl('putObject', params);
-        const fileUrl = `https://${bucketName}.s3.amazonaws.com/${key}`;
-        
-        console.log('Generated URLs:', { uploadUrl, fileUrl });
-        
-        return {
-            statusCode: 200,
-            headers: corsHeaders,
-            body: JSON.stringify({
-                uploadUrl,
-                fileUrl
-            })
-        };
+        if (operation === 'download') {
+            // Generate presigned URL for GET operation (download)
+            const params = {
+                Bucket: bucketName,
+                Key: key,
+                Expires: 3600 // 1 hour for downloads
+            };
+            
+            const downloadUrl = s3.getSignedUrl('getObject', params);
+            
+            console.log('Generated download URL for:', key);
+            
+            return {
+                statusCode: 200,
+                headers: corsHeaders,
+                body: JSON.stringify({
+                    downloadUrl,
+                    fileUrl: `https://${bucketName}.s3.amazonaws.com/${key}`
+                })
+            };
+        } else {
+            // Default to upload operation
+            if (!contentType) {
+                return {
+                    statusCode: 400,
+                    headers: corsHeaders,
+                    body: JSON.stringify({ 
+                        error: 'Missing required field: contentType for upload operation' 
+                    })
+                };
+            }
+            
+            // Generate presigned URL for PUT operation (upload)
+            const params = {
+                Bucket: bucketName,
+                Key: key,
+                Expires: 300, // 5 minutes for uploads
+                ContentType: contentType,
+                ACL: 'private'
+            };
+            
+            const uploadUrl = s3.getSignedUrl('putObject', params);
+            const fileUrl = `https://${bucketName}.s3.amazonaws.com/${key}`;
+            
+            console.log('Generated upload URLs:', { uploadUrl, fileUrl });
+            
+            return {
+                statusCode: 200,
+                headers: corsHeaders,
+                body: JSON.stringify({
+                    uploadUrl,
+                    fileUrl
+                })
+            };
+        }
         
     } catch (error) {
         console.error('Error:', error);

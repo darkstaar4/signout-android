@@ -75,6 +75,7 @@ fun HomeView(
     onMenuActionClick: (RoomListMenuAction) -> Unit,
     onReportRoomClick: (roomId: RoomId) -> Unit,
     onDeclineInviteAndBlockUser: (roomSummary: RoomListRoomSummary) -> Unit,
+    onAdminClick: () -> Unit,
     modifier: Modifier = Modifier,
     acceptDeclineInviteView: @Composable () -> Unit,
 ) {
@@ -115,6 +116,7 @@ fun HomeView(
                 onOpenSettings = { if (firstThrottler.canHandle()) onSettingsClick() },
                 onCreateRoomClick = { if (firstThrottler.canHandle()) onCreateRoomClick() },
                 onMenuActionClick = onMenuActionClick,
+                onAdminClick = { if (firstThrottler.canHandle()) onAdminClick() },
                 modifier = Modifier.padding(top = topPadding),
             )
             // This overlaid view will only be visible when state.displaySearchResults is true
@@ -144,6 +146,7 @@ private fun HomeScaffold(
     onOpenSettings: () -> Unit,
     onCreateRoomClick: () -> Unit,
     onMenuActionClick: (RoomListMenuAction) -> Unit,
+    onAdminClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     fun onRoomClick(room: RoomListRoomSummary) {
@@ -166,20 +169,21 @@ private fun HomeScaffold(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            RoomListTopBar(
-                title = stringResource(state.currentHomeNavigationBarItem.labelRes),
-                matrixUser = state.matrixUser,
-                showAvatarIndicator = state.showAvatarIndicator,
-                areSearchResultsDisplayed = roomListState.searchState.isSearchActive,
-                onToggleSearch = { roomListState.eventSink(RoomListEvents.ToggleSearchResults) },
-                onMenuActionClick = onMenuActionClick,
-                onOpenSettings = onOpenSettings,
-                scrollBehavior = scrollBehavior,
-                displayMenuItems = state.displayActions,
-                displayFilters = roomListState.displayFilters && state.currentHomeNavigationBarItem == HomeNavigationBarItem.Chats,
-                filtersState = roomListState.filtersState,
-                canReportBug = state.canReportBug,
-            )
+                            RoomListTopBar(
+                    title = stringResource(state.currentHomeNavigationBarItem.labelRes),
+                    matrixUser = state.matrixUser,
+                    showAvatarIndicator = state.showAvatarIndicator,
+                    areSearchResultsDisplayed = roomListState.searchState.isSearchActive,
+                    onToggleSearch = { roomListState.eventSink(RoomListEvents.ToggleSearchResults) },
+                    onMenuActionClick = onMenuActionClick,
+                    onOpenSettings = onOpenSettings,
+                    scrollBehavior = scrollBehavior,
+                    displayMenuItems = state.displayActions,
+                    displayFilters = roomListState.displayFilters && state.currentHomeNavigationBarItem == HomeNavigationBarItem.Chats,
+                    filtersState = roomListState.filtersState,
+                    canReportBug = state.canReportBug,
+                    isAdmin = state.isAdmin,
+                )
         },
         bottomBar = {
             if (state.isSpaceFeatureEnabled) {
@@ -288,6 +292,7 @@ internal fun HomeViewPreview(@PreviewParameter(HomeStateProvider::class) state: 
         onReportRoomClick = {},
         onMenuActionClick = {},
         onDeclineInviteAndBlockUser = {},
+        onAdminClick = {},
         acceptDeclineInviteView = {},
     )
 }

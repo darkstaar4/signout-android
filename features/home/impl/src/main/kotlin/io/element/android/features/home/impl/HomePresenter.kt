@@ -27,6 +27,12 @@ import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.indicator.api.IndicatorService
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.sync.SyncService
+
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import timber.log.Timber
 import javax.inject.Inject
 
 class HomePresenter @Inject constructor(
@@ -48,6 +54,16 @@ class HomePresenter @Inject constructor(
         val isSpaceFeatureEnabled by remember {
             featureFlagService.isFeatureEnabledFlow(FeatureFlags.Space)
         }.collectAsState(initial = false)
+        
+        // Check if current user is admin by Matrix user ID
+        val isAdmin = remember {
+            derivedStateOf {
+                val currentUserId = matrixUser.value.userId.value
+                val isAdminUser = currentUserId == "@nabilbaig:signout.io"
+                Timber.d("Admin check: currentUserId=$currentUserId, isAdmin=$isAdminUser")
+                isAdminUser
+            }
+        }
         var currentHomeNavigationBarItemOrdinal by rememberSaveable { mutableIntStateOf(HomeNavigationBarItem.Chats.ordinal) }
         val currentHomeNavigationBarItem by remember {
             derivedStateOf {
@@ -81,6 +97,7 @@ class HomePresenter @Inject constructor(
             canReportBug = canReportBug,
             directLogoutState = directLogoutState,
             isSpaceFeatureEnabled = isSpaceFeatureEnabled,
+            isAdmin = isAdmin.value,
             eventSink = ::handleEvents,
         )
     }

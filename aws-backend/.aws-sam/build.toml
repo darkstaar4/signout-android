@@ -27,4 +27,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["PresignedUrlFunction"]
 
+[function_build_definitions.b92abc71-819e-4b16-b5b8-c704a554c708]
+codeuri = "/Users/nabilbaig/Documents/SignOut Android-ElemX/aws-backend/lambda/user-deactivation"
+runtime = "nodejs18.x"
+architecture = "x86_64"
+handler = "index.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UserDeactivationFunction"]
+
 [layer_build_definitions]

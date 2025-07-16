@@ -9,6 +9,9 @@
 
     <!-- To be able to install APK from the application -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    
+    <!-- Admin overlay permission -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".ElementXApplication"
@@ -195,6 +198,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_providers" />
         </provider>
+
+        <!-- Admin overlay service -->
+        <service
+            android:name=".admin.AdminOverlayService"
+            android:enabled="true"
+            android:exported="false" />
 
     </application>
 

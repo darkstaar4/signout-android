@@ -41,6 +41,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import im.vector.app.features.analytics.plan.JoinedRoom
 import io.element.android.anvilannotations.ContributesNode
+import io.element.android.appnav.AdminDashboardNode
+import io.element.android.appnav.UserManagementNode
+import io.element.android.appnav.DocumentReviewNode
+import io.element.android.appnav.DocumentDetailNode
 import io.element.android.appnav.loggedin.LoggedInNode
 import io.element.android.appnav.loggedin.MediaPreviewConfigMigration
 import io.element.android.appnav.loggedin.SendQueues
@@ -275,6 +279,18 @@ class LoggedInFlowNode @AssistedInject constructor(
 
         @Parcelize
         data class IncomingVerificationRequest(val data: VerificationRequest.Incoming) : NavTarget
+
+        @Parcelize
+        data object AdminDashboard : NavTarget
+
+        @Parcelize
+        data object UserManagement : NavTarget
+
+        @Parcelize
+        data object DocumentReviewList : NavTarget
+
+        @Parcelize
+        data class DocumentDetail(val document: DocumentReview) : NavTarget
     }
 
     override fun resolve(navTarget: NavTarget, buildContext: BuildContext): Node {
@@ -320,6 +336,18 @@ class LoggedInFlowNode @AssistedInject constructor(
 
                     override fun onLogoutForNativeSlidingSyncMigrationNeeded() {
                         backstack.push(NavTarget.LogoutForNativeSlidingSyncMigrationNeeded)
+                    }
+
+                    override fun onAdminClick() {
+                        // Show admin dashboard
+                        timber.log.Timber.d("LoggedInFlowNode: Admin Dashboard clicked for nabil.baig@gmail.com")
+                        
+                        timber.log.Timber.i("🔧 ADMIN DASHBOARD ACTIVATED 🔧")
+                        timber.log.Timber.i("Welcome nabil.baig@gmail.com!")
+                        timber.log.Timber.i("✓ Navigating to Admin Dashboard...")
+                        
+                        // Navigate to admin dashboard
+                        backstack.push(NavTarget.AdminDashboard)
                     }
                 }
                 homeEntryPoint
@@ -502,6 +530,51 @@ class LoggedInFlowNode @AssistedInject constructor(
                         }
                     })
                     .build()
+            }
+            NavTarget.AdminDashboard -> {
+                val callback = object : AdminDashboardNode.Callback {
+                    override fun onBackClick() {
+                        backstack.pop()
+                    }
+                    override fun onUserManagementClick() {
+                        backstack.push(NavTarget.UserManagement)
+                    }
+                    override fun onDocumentReviewClick() {
+                        backstack.push(NavTarget.DocumentReviewList)
+                    }
+                }
+                createNode<AdminDashboardNode>(buildContext, plugins = listOf(callback))
+            }
+            NavTarget.UserManagement -> {
+                val callback = object : UserManagementNode.Callback {
+                    override fun onBackClick() {
+                        backstack.pop()
+                    }
+                }
+                createNode<UserManagementNode>(buildContext, plugins = listOf(callback))
+            }
+            NavTarget.DocumentReviewList -> {
+                val callback = object : DocumentReviewNode.Callback {
+                    override fun onBackClick() {
+                        backstack.pop()
+                    }
+                    override fun onDocumentClick(document: DocumentReview) {
+                        backstack.push(NavTarget.DocumentDetail(document))
+                    }
+                }
+                createNode<DocumentReviewNode>(buildContext, plugins = listOf(callback))
+            }
+            is NavTarget.DocumentDetail -> {
+                val callback = object : DocumentDetailNode.Callback {
+                    override fun onBackClick() {
+                        backstack.pop()
+                    }
+                    override fun onDocumentActionCompleted() {
+                        backstack.pop()
+                    }
+                }
+                val inputs = DocumentDetailNode.Inputs(navTarget.document)
+                createNode<DocumentDetailNode>(buildContext, plugins = listOf(callback, inputs))
             }
         }
     }

@@ -1,0 +1,15 @@
+{
+  "name": "user-deactivation-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function for Cognito user deactivation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["aws", "lambda", "cognito", "user-management"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1691.0"
+  }
+} 

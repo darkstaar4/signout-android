@@ -339,9 +339,16 @@ class DefaultMatrixIntegrationService
 
         override fun formatMatrixUsername(username: String): String {
             // Ensure the username is valid for Matrix (lowercase, no special chars except _)
-            return username.lowercase()
+            val formatted = username.lowercase()
                 .replace(Regex("[^a-z0-9_]"), "_")
                 .take(32) // Matrix usernames have limits
+            
+            // Matrix usernames cannot start with underscore, so prefix with 'u' if needed
+            return if (formatted.startsWith("_")) {
+                "u$formatted".take(32)
+            } else {
+                formatted
+            }
         }
         
         private fun generateHmacSha1(
