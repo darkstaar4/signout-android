@@ -771,6 +771,9 @@ class CognitoAuthService
                             // Add verification document URL if provided
                             userData.verificationDocumentUrl?.let { if (it.isNotEmpty()) addAttribute("custom:verify_doc_url", it) }
                             
+                            // Set approval status to pending for all new users
+                            addAttribute("custom:approval_status", "pending")
+                            
                             // Don't add Matrix credentials yet - they'll be added after verification
                         }
 

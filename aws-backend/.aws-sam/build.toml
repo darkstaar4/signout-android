@@ -36,4 +36,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["UserDeactivationFunction"]
 
+[function_build_definitions.e8e94b42-0835-4b56-bc37-f1cba6aff3a9]
+codeuri = "/Users/nabilbaig/Documents/SignOut Android-ElemX/aws-backend/lambda/user-approval-status"
+runtime = "nodejs18.x"
+architecture = "x86_64"
+handler = "index.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UserApprovalStatusFunction"]
+
 [layer_build_definitions]

@@ -215,7 +215,6 @@ private fun DocumentReviewView(
             when (selectedFilter) {
                 "Pending" -> document.status == DocumentStatus.PENDING
                 "Deactivated" -> document.status == DocumentStatus.DEACTIVATED
-                "All" -> true
                 else -> true
             }
         }
@@ -287,7 +286,7 @@ private fun DocumentReviewView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Pending", "Deactivated", "All").forEach { filter ->
+                    listOf("Pending", "Deactivated").forEach { filter ->
                         Button(
                             onClick = { selectedFilter = filter },
                             modifier = Modifier.weight(1f),

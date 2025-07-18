@@ -259,6 +259,7 @@ private fun RoomsViewList(
                     state.seenRoomInvites.contains(room.roomId),
                 onClick = onRoomClick,
                 eventSink = eventSink,
+                userMappingService = state.userMappingService,
             )
             if (index != state.summaries.lastIndex) {
                 HorizontalDivider()

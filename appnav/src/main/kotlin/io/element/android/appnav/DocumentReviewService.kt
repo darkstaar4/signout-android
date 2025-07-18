@@ -7,6 +7,7 @@
 
 package io.element.android.appnav
 
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -75,65 +76,30 @@ class DocumentReviewService @Inject constructor() {
         coerceInputValues = true
     }
     
-    // Cache to track cleared documents (in-memory for now)
-    private val clearedDocuments = mutableSetOf<String>()
-    
-    // Cache to track deactivated users (in-memory for now)
-    private val deactivatedUsers = mutableSetOf<String>()
-    
-    // Using actual AWS API Gateway URL - document endpoints will be added later
+    // Using actual AWS API Gateway URL
     private val baseUrl = "https://gnxe6db6wa.execute-api.us-east-1.amazonaws.com/prod"
     private val documentsEndpoint = "$baseUrl/api/v1/documents"
     private val documentSearchEndpoint = "$baseUrl/api/v1/documents/search"
     private val documentActionEndpoint = "$baseUrl/api/v1/documents/action"
-    
+    private val approvalStatusEndpoint = "$baseUrl/api/v1/users/cognito/approval-status"
+    private val userDeactivationEndpoint = "$baseUrl/api/v1/users/cognito/deactivate"
+
     /**
      * Get all pending document reviews from Cognito users
+     * Filters based on approval_status = 'pending'
      */
     suspend fun getPendingDocuments(): DocumentReviewResult = withContext(Dispatchers.IO) {
         try {
             Timber.d("DocumentReviewService: Fetching pending documents from Cognito")
             
-            // Get users from Cognito using a broad search approach
-            // Since the API requires a query parameter, we'll use common letters to get a wide range of users
-            val searchQueries = listOf("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z")
-            val allUsers = mutableListOf<CognitoApiUser>()
-            val seenUserIds = mutableSetOf<String>()
+            val allUsers = fetchAllCognitoUsers()
             
-            // Try a few common search terms to get a broader set of users
-            for (query in searchQueries.take(5)) { // Try first 5 letters
-                try {
-                    val request = Request.Builder()
-                        .url("$baseUrl/api/v1/users/cognito/search?query=$query&limit=20")
-                        .get()
-                        .build()
-                    
-                    val response = httpClient.newCall(request).execute()
-                    
-                    if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
-                        if (responseBody != null) {
-                            val cognitoResponse = json.decodeFromString<CognitoUserSearchResponse>(responseBody)
-                            
-                            // Add users we haven't seen before
-                            cognitoResponse.users.forEach { user ->
-                                if (!seenUserIds.contains(user.cognito_username)) {
-                                    seenUserIds.add(user.cognito_username)
-                                    allUsers.add(user)
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Timber.w(e, "DocumentReviewService: Error searching with query '$query'")
-                    // Continue with next query
-                }
-            }
-            
-            // Convert to document reviews and filter for pending status, excluding cleared documents
+            // Filter for users with approval_status = 'pending'
             val pendingDocuments = allUsers.mapNotNull { user ->
                 convertCognitoUserToDocumentReview(user)
-            }.filter { it.status == DocumentStatus.PENDING && !clearedDocuments.contains(it.id) }
+            }.filter { document ->
+                document.status == DocumentStatus.PENDING
+            }
             
             Timber.d("DocumentReviewService: Successfully fetched ${pendingDocuments.size} pending documents from ${allUsers.size} users")
             DocumentReviewResult(
@@ -141,7 +107,7 @@ class DocumentReviewService @Inject constructor() {
                 documents = pendingDocuments
             )
         } catch (e: Exception) {
-            Timber.e(e, "DocumentReviewService: Error fetching documents")
+            Timber.e(e, "DocumentReviewService: Error fetching pending documents")
             DocumentReviewResult(
                 isSuccess = false,
                 error = "Error: ${e.message}"
@@ -151,50 +117,20 @@ class DocumentReviewService @Inject constructor() {
     
     /**
      * Get all deactivated document reviews from Cognito users
+     * Filters based on user account being disabled
      */
     suspend fun getDeactivatedDocuments(): DocumentReviewResult = withContext(Dispatchers.IO) {
         try {
             Timber.d("DocumentReviewService: Fetching deactivated documents from Cognito")
             
-            // Get users from Cognito using a broad search approach
-            val searchQueries = listOf("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z")
-            val allUsers = mutableListOf<CognitoApiUser>()
-            val seenUserIds = mutableSetOf<String>()
+            val allUsers = fetchAllCognitoUsers()
             
-            // Try a few common search terms to get a broader set of users
-            for (query in searchQueries.take(5)) { // Try first 5 letters
-                try {
-                    val request = Request.Builder()
-                        .url("$baseUrl/api/v1/users/cognito/search?query=$query&limit=20")
-                        .get()
-                        .build()
-                    
-                    val response = httpClient.newCall(request).execute()
-                    
-                    if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
-                        if (responseBody != null) {
-                            val cognitoResponse = json.decodeFromString<CognitoUserSearchResponse>(responseBody)
-                            
-                            // Add users we haven't seen before
-                            cognitoResponse.users.forEach { user ->
-                                if (!seenUserIds.contains(user.cognito_username)) {
-                                    seenUserIds.add(user.cognito_username)
-                                    allUsers.add(user)
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Timber.w(e, "DocumentReviewService: Error searching with query '$query'")
-                    // Continue with next query
-                }
-            }
-            
-            // Convert to document reviews and filter for deactivated status
+            // Filter for users who are disabled (deactivated)
             val deactivatedDocuments = allUsers.mapNotNull { user ->
                 convertCognitoUserToDocumentReview(user)
-            }.filter { it.status == DocumentStatus.DEACTIVATED }
+            }.filter { document ->
+                document.status == DocumentStatus.DEACTIVATED
+            }
             
             Timber.d("DocumentReviewService: Successfully fetched ${deactivatedDocuments.size} deactivated documents from ${allUsers.size} users")
             DocumentReviewResult(
@@ -238,10 +174,10 @@ class DocumentReviewService @Inject constructor() {
                 if (responseBody != null) {
                     val cognitoResponse = json.decodeFromString<CognitoUserSearchResponse>(responseBody)
                     
-                    // Convert matching users to document reviews, excluding cleared documents
+                    // Convert matching users to document reviews
                     val filteredDocuments = cognitoResponse.users.mapNotNull { user ->
                         convertCognitoUserToDocumentReview(user)
-                    }.filter { !clearedDocuments.contains(it.id) }
+                    }
                     
                     Timber.d("DocumentReviewService: Found ${filteredDocuments.size} documents for query: $query")
                     DocumentReviewResult(
@@ -284,13 +220,28 @@ class DocumentReviewService @Inject constructor() {
             
             when (action) {
                 DocumentAction.CLEAR_FROM_REVIEW -> {
-                    // Clear from review - add to cleared cache to prevent it from showing again
+                    // Clear from review - update approval status to "cleared"
                     Timber.d("DocumentReviewService: Clearing document $documentId from review")
-                    clearedDocuments.add(documentId)
-                    DocumentActionResult(
-                        isSuccess = true,
-                        message = "Document cleared from review successfully"
-                    )
+                    val username = extractUsernameFromDocumentId(documentId)
+                    if (username != null) {
+                        val success = updateApprovalStatus(username, "cleared")
+                        if (success) {
+                            DocumentActionResult(
+                                isSuccess = true,
+                                message = "Document cleared from review successfully"
+                            )
+                        } else {
+                            DocumentActionResult(
+                                isSuccess = false,
+                                error = "Failed to update approval status"
+                            )
+                        }
+                    } else {
+                        DocumentActionResult(
+                            isSuccess = false,
+                            error = "Invalid document ID format"
+                        )
+                    }
                 }
                 
                 DocumentAction.DEACTIVATE_USER -> {
@@ -565,7 +516,7 @@ class DocumentReviewService @Inject constructor() {
             // Call real AWS API to disable the user
             val requestBody = """{"username": "$username", "action": "disable"}"""
             val request = Request.Builder()
-                .url("$baseUrl/api/v1/users/cognito/deactivate")
+                .url(userDeactivationEndpoint)
                 .post(requestBody.toRequestBody("application/json".toMediaType()))
                 .build()
             
@@ -577,8 +528,6 @@ class DocumentReviewService @Inject constructor() {
                 val success = jsonResponse.optBoolean("success", false)
                 
                 if (success) {
-                    // Add to local cache for UI updates
-                    deactivatedUsers.add(username)
                     Timber.d("DocumentReviewService: User $username successfully deactivated in Cognito")
                     return true
                 } else {
@@ -626,15 +575,26 @@ class DocumentReviewService @Inject constructor() {
 
     /**
      * Convert Cognito user to DocumentReview format
-     * Only creates DocumentReview if user has uploaded documents and needs review
+     * Uses approval_status from Cognito and account enabled status
      */
     private fun convertCognitoUserToDocumentReview(cognitoUser: CognitoApiUser): DocumentReview? {
         val username = cognitoUser.cognito_username
         if (username.isNotEmpty()) {
-            // Check if user is deactivated
-            val isDeactivated = deactivatedUsers.contains(username)
-            val status = if (isDeactivated) DocumentStatus.DEACTIVATED else DocumentStatus.PENDING
-            val documentId = if (isDeactivated) "doc_${username}_deactivated" else "doc_${username}_pending"
+            // Determine status based on Cognito user status and approval status
+            val isDeactivated = !cognitoUser.is_enabled || !cognitoUser.is_active
+            val approvalStatus = cognitoUser.approval_status
+            
+            val status = when {
+                isDeactivated -> DocumentStatus.DEACTIVATED
+                approvalStatus == "pending" -> DocumentStatus.PENDING
+                approvalStatus == "cleared" -> return null // Don't show cleared users in any list
+                else -> DocumentStatus.PENDING // Default to pending for safety
+            }
+            
+            val documentId = when (status) {
+                DocumentStatus.DEACTIVATED -> "doc_${username}_deactivated"
+                else -> "doc_${username}_pending"
+            }
             
             return DocumentReview(
                 id = documentId,
@@ -651,7 +611,7 @@ class DocumentReviewService @Inject constructor() {
                 reviewedAt = if (isDeactivated) java.time.Instant.now().toString() else null,
                 reviewedBy = if (isDeactivated) "Admin" else null,
                 reviewNotes = if (isDeactivated) "User account deactivated" else null,
-                isUserActive = !isDeactivated,
+                isUserActive = cognitoUser.is_enabled && cognitoUser.is_active,
                 phoneNumber = cognitoUser.phone_number,
                 specialty = cognitoUser.specialty,
                 city = cognitoUser.office_city,
@@ -682,5 +642,177 @@ class DocumentReviewService @Inject constructor() {
         }
     }
     
+    /**
+     * Fetch all Cognito users using broad search approach
+     */
+    private suspend fun fetchAllCognitoUsers(): List<CognitoApiUser> {
+        val searchQueries = listOf("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z")
+        val allUsers = mutableListOf<CognitoApiUser>()
+        val seenUserIds = mutableSetOf<String>()
+        
+        // Try a few common search terms to get a broader set of users
+        for (query in searchQueries.take(5)) { // Try first 5 letters
+            try {
+                val request = Request.Builder()
+                    .url("$baseUrl/api/v1/users/cognito/search?query=$query&limit=20")
+                    .get()
+                    .build()
+                
+                val response = httpClient.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    if (responseBody != null) {
+                        val cognitoResponse = json.decodeFromString<CognitoUserSearchResponse>(responseBody)
+                        
+                        // Add users we haven't seen before
+                        cognitoResponse.users.forEach { user ->
+                            if (!seenUserIds.contains(user.cognito_username)) {
+                                seenUserIds.add(user.cognito_username)
+                                allUsers.add(user)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "DocumentReviewService: Error searching with query '$query'")
+                // Continue with next query
+            }
+        }
+        
+        return allUsers
+    }
+    
+
+    
+    /**
+     * Perform document action (clear from review or deactivate user)
+     */
+    suspend fun performDocumentAction(documentId: String, action: DocumentAction): DocumentActionResult = withContext(Dispatchers.IO) {
+        try {
+            Timber.d("DocumentReviewService: Performing action $action on document $documentId")
+            
+            when (action) {
+                DocumentAction.CLEAR_FROM_REVIEW -> {
+                    // Clear from review - update approval_status to 'cleared'
+                    val username = extractUsernameFromDocumentId(documentId)
+                    if (username != null) {
+                        val success = updateApprovalStatus(username, "cleared")
+                        if (success) {
+                            Timber.d("DocumentReviewService: Document $documentId cleared from review successfully")
+                            DocumentActionResult(
+                                isSuccess = true,
+                                message = "Document cleared from review successfully"
+                            )
+                        } else {
+                            Timber.e("DocumentReviewService: Failed to clear document $documentId from review")
+                            DocumentActionResult(
+                                isSuccess = false,
+                                error = "Failed to clear from review"
+                            )
+                        }
+                    } else {
+                        DocumentActionResult(
+                            isSuccess = false,
+                            error = "Invalid document ID"
+                        )
+                    }
+                }
+                
+                DocumentAction.DEACTIVATE_USER -> {
+                    // Deactivate user - update approval_status to 'cleared' AND disable the account
+                    val username = extractUsernameFromDocumentId(documentId)
+                    if (username != null) {
+                        // First update approval status to 'cleared'
+                        val approvalSuccess = updateApprovalStatus(username, "cleared")
+                        if (approvalSuccess) {
+                            // Then deactivate the user account
+                            val deactivateSuccess = deactivateCognitoUser(username)
+                            if (deactivateSuccess) {
+                                Timber.d("DocumentReviewService: User $username deactivated successfully")
+                                DocumentActionResult(
+                                    isSuccess = true,
+                                    message = "User account deactivated successfully"
+                                )
+                            } else {
+                                Timber.e("DocumentReviewService: Failed to deactivate user $username")
+                                DocumentActionResult(
+                                    isSuccess = false,
+                                    error = "Failed to deactivate user account"
+                                )
+                            }
+                        } else {
+                            Timber.e("DocumentReviewService: Failed to update approval status for user $username")
+                            DocumentActionResult(
+                                isSuccess = false,
+                                error = "Failed to update approval status"
+                            )
+                        }
+                    } else {
+                        DocumentActionResult(
+                            isSuccess = false,
+                            error = "Invalid document ID"
+                        )
+                    }
+                }
+                
+                else -> {
+                    DocumentActionResult(
+                        isSuccess = false,
+                        error = "Unsupported action: $action"
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "DocumentReviewService: Error performing action $action")
+            DocumentActionResult(
+                isSuccess = false,
+                error = "Error: ${e.message}"
+            )
+        }
+    }
+    
+    /**
+     * Update approval status for a user
+     */
+    private suspend fun updateApprovalStatus(username: String, approvalStatus: String): Boolean {
+        return try {
+            val requestBody = """
+                {
+                    "username": "$username",
+                    "approval_status": "$approvalStatus"
+                }
+            """.trimIndent()
+            
+            val request = Request.Builder()
+                .url(approvalStatusEndpoint)
+                .post(requestBody.toRequestBody("application/json".toMediaType()))
+                .build()
+            
+            val response = httpClient.newCall(request).execute()
+            
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string() ?: ""
+                val jsonResponse = JSONObject(responseBody)
+                val success = jsonResponse.optBoolean("success", false)
+                
+                if (success) {
+                    Timber.d("DocumentReviewService: Approval status updated successfully for user $username to $approvalStatus")
+                    return true
+                } else {
+                    val error = jsonResponse.optString("error", "Unknown error")
+                    Timber.e("DocumentReviewService: Failed to update approval status for user $username: $error")
+                    return false
+                }
+            } else {
+                Timber.e("DocumentReviewService: HTTP error updating approval status for user $username: ${response.code}")
+                return false
+            }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "Error updating approval status for user: $username")
+            false
+        }
+    }
 
 } 

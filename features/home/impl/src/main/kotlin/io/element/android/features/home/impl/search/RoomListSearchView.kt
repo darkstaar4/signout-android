@@ -181,6 +181,7 @@ private fun RoomListSearchContent(
                         isInviteSeen = false,
                         onClick = ::onRoomClick,
                         eventSink = eventSink,
+                        userMappingService = null, // TODO: Add UserMappingService to search state
                     )
                 }
             }

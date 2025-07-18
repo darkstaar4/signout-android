@@ -169,6 +169,12 @@ function convertCognitoUser(cognitoUser) {
     const username = attributes.preferred_username || cognitoUser.Username;
     const matrixUserId = `@${username}:${MATRIX_DOMAIN}`;
     
+    // Determine if user is active based on Cognito status
+    // UserStatus can be: CONFIRMED, UNCONFIRMED, ARCHIVED, COMPROMISED, UNKNOWN, RESET_REQUIRED, FORCE_CHANGE_PASSWORD
+    // Enabled field indicates if user is enabled/disabled
+    const isActive = cognitoUser.Enabled !== false && 
+                     cognitoUser.UserStatus === 'CONFIRMED';
+    
     return {
         matrix_user_id: matrixUserId,
         matrix_username: username,
@@ -183,6 +189,12 @@ function convertCognitoUser(cognitoUser) {
         phone_number: attributes.phone_number || null,
         avatar_url: attributes.picture || null,
         created_at: cognitoUser.UserCreateDate?.toISOString(),
-        updated_at: cognitoUser.UserLastModifiedDate?.toISOString()
+        updated_at: cognitoUser.UserLastModifiedDate?.toISOString(),
+        // Add Cognito status fields
+        user_status: cognitoUser.UserStatus,
+        is_enabled: cognitoUser.Enabled !== false,
+        is_active: isActive,
+        // Add approval status for document review
+        approval_status: attributes['custom:approval_status'] || 'pending'
     };
 } 

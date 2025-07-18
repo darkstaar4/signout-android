@@ -36,7 +36,13 @@ data class CognitoApiUser(
     val phone_number: String? = null,
     val avatar_url: String? = null,
     val created_at: String? = null,
-    val updated_at: String? = null
+    val updated_at: String? = null,
+    // Add Cognito status fields
+    val user_status: String? = null,
+    val is_enabled: Boolean = true,
+    val is_active: Boolean = true,
+    // Add approval status for document review
+    val approval_status: String = "pending"
 )
 
 @Serializable
@@ -279,7 +285,7 @@ class CognitoUserService @Inject constructor() {
             specialty = apiUser.specialty ?: "Unknown",
             professionalTitle = "Unknown", // Not provided by API
             phoneNumber = apiUser.phone_number ?: "Unknown",
-            isActive = true, // Assume active users in Cognito
+            isActive = apiUser.is_active, // Use actual Cognito status
             createdAt = apiUser.created_at?.substring(0, 10) ?: "Unknown", // Extract date part
             lastSignIn = apiUser.updated_at?.substring(0, 10) ?: "Unknown", // Use updated_at as proxy
             matrixUserId = apiUser.matrix_user_id

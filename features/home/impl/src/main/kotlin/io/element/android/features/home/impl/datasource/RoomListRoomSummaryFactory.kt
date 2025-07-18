@@ -103,9 +103,29 @@ class RoomListRoomSummaryFactory @Inject constructor(
                 // Create enhanced InviteSender with user mapping
                 val username = inviter.userId.value.substringAfter("@").substringBefore(":")
                 val userMapping = userMappingService.getUserMapping(username)
-                val enhancedDisplayName = userMapping?.displayName ?: inviter.displayName ?: ""
+                
+                // Construct proper display name: prefer user mapping display name, 
+                // then construct from first + last name, finally fallback to inviter display name
+                val enhancedDisplayName = when {
+                    userMapping?.displayName?.isNotBlank() == true -> userMapping.displayName
+                    userMapping != null -> "${userMapping.firstName} ${userMapping.lastName}".trim()
+                    else -> inviter.displayName ?: username
+                }
                 
                 Timber.d("RoomListRoomSummaryFactory: Creating InviteSender for $username - enhanced: $enhancedDisplayName")
+                
+                // If we don't have a proper display name, try to fetch from Cognito asynchronously
+                if (enhancedDisplayName == username || enhancedDisplayName.isBlank()) {
+                    Timber.d("RoomListRoomSummaryFactory: Display name not available for $username, fetching from Cognito")
+                    sessionCoroutineScope.launch {
+                        try {
+                            cognitoUserIntegrationService.discoverUserMapping(inviter.userId.value, inviter.displayName)
+                            Timber.d("RoomListRoomSummaryFactory: Successfully populated user mapping for $username from Cognito")
+                        } catch (e: Exception) {
+                            Timber.w(e, "RoomListRoomSummaryFactory: Failed to populate user mapping for $username from Cognito")
+                        }
+                    }
+                }
                 
                 InviteSender(
                     userId = inviter.userId,

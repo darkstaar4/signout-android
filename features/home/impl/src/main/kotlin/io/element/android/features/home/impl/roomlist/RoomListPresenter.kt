@@ -85,6 +85,7 @@ class RoomListPresenter @Inject constructor(
     private val notificationCleaner: NotificationCleaner,
     private val appPreferencesStore: AppPreferencesStore,
     private val seenInvitesStore: SeenInvitesStore,
+    private val userMappingService: io.element.android.libraries.usersearch.api.UserMappingService,
 ) : Presenter<RoomListState> {
     private val encryptionService: EncryptionService = client.encryptionService()
 
@@ -220,6 +221,7 @@ class RoomListPresenter @Inject constructor(
                     batteryOptimizationState = batteryOptimizationPresenter.present(),
                     summaries = roomSummaries.dataOrNull().orEmpty().toPersistentList(),
                     seenRoomInvites = seenRoomInvites.toPersistentSet(),
+                    userMappingService = userMappingService,
                 )
             }
         }

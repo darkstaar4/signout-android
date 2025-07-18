@@ -1,0 +1,11 @@
+{
+  "name": "user-approval-status",
+  "version": "1.0.0",
+  "description": "Lambda function to update user approval status in Cognito",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1600.0"
+  },
+  "author": "",
+  "license": "ISC"
+} 

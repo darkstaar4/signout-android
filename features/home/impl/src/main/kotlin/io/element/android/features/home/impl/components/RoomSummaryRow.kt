@@ -61,6 +61,9 @@ import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.ui.components.InviteSenderView
 import io.element.android.libraries.matrix.ui.model.InviteSender
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.usersearch.api.UserMappingService
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 import timber.log.Timber
 
 internal val minHeight = 84.dp
@@ -73,6 +76,7 @@ internal fun RoomSummaryRow(
     onClick: (RoomListRoomSummary) -> Unit,
     eventSink: (RoomListEvents) -> Unit,
     modifier: Modifier = Modifier,
+    userMappingService: UserMappingService? = null,
 ) {
     Box(modifier = modifier) {
         when (room.displayType) {
@@ -92,9 +96,29 @@ internal fun RoomSummaryRow(
                     InviteSubtitle(isDm = room.isDm, inviteSender = room.inviteSender)
                     if (!room.isDm && room.inviteSender != null) {
                         Spacer(modifier = Modifier.height(4.dp))
+                        
+                        // Enhance the invitation display name with real-time Cognito data
+                        val enhancedInviteSender = if (userMappingService != null) {
+                            val username = room.inviteSender.userId.value.substringAfter("@").substringBefore(":")
+                            val userMapping by produceState<io.element.android.libraries.usersearch.api.UserMapping?>(null) {
+                                value = userMappingService.getUserMapping(username)
+                            }
+                            
+                            val currentMapping = userMapping
+                            val enhancedDisplayName = when {
+                                currentMapping?.displayName?.isNotBlank() == true -> currentMapping.displayName
+                                currentMapping != null -> "${currentMapping.firstName} ${currentMapping.lastName}".trim()
+                                else -> room.inviteSender.displayName
+                            }
+                            
+                            room.inviteSender.copy(displayName = enhancedDisplayName)
+                        } else {
+                            room.inviteSender
+                        }
+                        
                         InviteSenderView(
                             modifier = Modifier.fillMaxWidth(),
-                            inviteSender = room.inviteSender,
+                            inviteSender = enhancedInviteSender,
                             hideAvatarImage = hideInviteAvatars
                         )
                     }
@@ -405,5 +429,6 @@ internal fun RoomSummaryRowPreview(@PreviewParameter(RoomListRoomSummaryProvider
         isInviteSeen = data.name == "Bob",
         onClick = {},
         eventSink = {},
+        userMappingService = null,
     )
 }
