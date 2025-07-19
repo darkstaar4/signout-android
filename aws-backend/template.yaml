@@ -244,6 +244,171 @@ Resources:
             Path: /api/v1/users/cognito/approval-status
             Method: OPTIONS
 
+  # DynamoDB Table for Broadcast Messages
+  BroadcastMessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-broadcast-messages'
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: is_active
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ActiveMessagesIndex
+          KeySchema:
+            - AttributeName: is_active
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  # Lambda Function for Creating Broadcast Messages
+  BroadcastMessageCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-broadcast-create'
+      CodeUri: lambda/broadcast-messages/
+      Handler: create.handler
+      Description: 'Create new broadcast messages'
+      Environment:
+        Variables:
+          BROADCAST_TABLE: !Ref BroadcastMessagesTable
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BroadcastMessagesTable.Arn
+      Events:
+        CreateMessageApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages
+            Method: POST
+        CreateMessageOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages
+            Method: OPTIONS
+
+  # Lambda Function for Fetching Active Messages
+  BroadcastMessageFetchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-broadcast-fetch'
+      CodeUri: lambda/broadcast-messages/
+      Handler: fetch.handler
+      Description: 'Fetch active broadcast messages'
+      Environment:
+        Variables:
+          BROADCAST_TABLE: !Ref BroadcastMessagesTable
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: 
+                - !GetAtt BroadcastMessagesTable.Arn
+                - !Sub '${BroadcastMessagesTable.Arn}/index/*'
+      Events:
+        FetchMessagesApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages/active
+            Method: GET
+        FetchMessagesOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages/active
+            Method: OPTIONS
+
+  # Lambda Function for Dismissing Messages
+  BroadcastMessageDismissFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-broadcast-dismiss'
+      CodeUri: lambda/broadcast-messages/
+      Handler: dismiss.handler
+      Description: 'Dismiss broadcast messages for users'
+      Environment:
+        Variables:
+          BROADCAST_TABLE: !Ref BroadcastMessagesTable
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BroadcastMessagesTable.Arn
+      Events:
+        DismissMessageApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages/{id}/dismiss
+            Method: POST
+        DismissMessageOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages/{id}/dismiss
+            Method: OPTIONS
+
+  # Lambda Function for Updating Message Status
+  BroadcastMessageStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-broadcast-status'
+      CodeUri: lambda/broadcast-messages/
+      Handler: status.handler
+      Description: 'Update broadcast message status'
+      Environment:
+        Variables:
+          BROADCAST_TABLE: !Ref BroadcastMessagesTable
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BroadcastMessagesTable.Arn
+      Events:
+        StatusMessageApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages/{id}/status
+            Method: PUT
+        StatusMessageOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CognitoUserApi
+            Path: /api/v1/broadcast-messages/{id}/status
+            Method: OPTIONS
+
 Outputs:
   ApiGatewayUrl:
     Description: 'API Gateway endpoint URL'
